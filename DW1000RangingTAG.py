@@ -84,6 +84,7 @@ def transmitPoll():
     It checks if an anchor is operational.
     """    
     global data, lastPoll
+    print "polling"
     while (millis() - lastPoll < POLL_RANGE_FREQ):
         pass
     DW1000.newTransmit()
@@ -98,6 +99,7 @@ def transmitRange():
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
     global data, timeRangeSentTS
+    print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
     timeRangeSentTS = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
