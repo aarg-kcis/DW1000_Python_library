@@ -38,7 +38,7 @@ def handleSent():
     """
     This is a callback called from the module's interrupt handler when a transmission was successful. 
     It sets the sentAck variable as True so the loop can continue.
-    """            
+    """
     global sentAck
     sentAck = True
 
@@ -65,7 +65,7 @@ def resetInactive():
     This function restarts the default polling operation when the device is deemed inactive.
     """    
     global expectedMsgId
-    print("reset inactive")    
+    print("reset inactive", C.POLL)    
     expectedMsgId = C.POLL
     receiver()
     noteActivity()
@@ -76,6 +76,7 @@ def transmitPollAck():
     This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
     """        
     global data
+    #print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
     DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
@@ -88,6 +89,7 @@ def transmitRangeAcknowledge():
     This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
     """
     global data
+    #print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
     DW1000.setData(data, LEN_DATA)
@@ -99,6 +101,7 @@ def transmitRangeFailed():
     This functions sends the range failed message which tells the tag that the ranging function has failed and to start another ranging transmission.
     """    
     global data
+    #print "transmitRangeFailed"
     DW1000.newTransmit()
     data[0] = C.RANGE_FAILED
     DW1000.setData(data, LEN_DATA)
@@ -110,6 +113,7 @@ def receiver():
     This function configures the chip to prepare for a message reception.
     """    
     global data
+    #print "receiver"
     DW1000.newReceive()
     DW1000.receivePermanently()
     DW1000.startReceive()
@@ -124,7 +128,9 @@ def computeRangeAsymmetric():
     reply1 = DW1000.wrapTimestamp(timePollAckSentTS - timePollReceivedTS)
     round2 = DW1000.wrapTimestamp(timeRangeReceivedTS - timePollAckSentTS)
     reply2 = DW1000.wrapTimestamp(timeRangeSentTS - timePollAckReceivedTS)
+    print round1<reply1, round2<reply2 
     timeComputedRangeTS = (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
+    # timeComputedRangeTS = (round2 + round1 - reply1 - reply2)/2
 
 
 def loop():
@@ -137,15 +143,19 @@ def loop():
     if sentAck:
         sentAck = False
         msgId = data[0]
+        #print msgId
         if msgId == C.POLL_ACK:
+            #print "pollack"
             timePollAckSentTS = DW1000.getTransmitTimestamp()
             noteActivity()
 
     if receivedAck:
         receivedAck = False
         data = DW1000.getData(LEN_DATA)
+        #print "setting data ", data
         msgId = data[0]
         if msgId != expectedMsgId:
+            #print "protocolFailed"
             protocolFailed = True
         if msgId == C.POLL:
             protocolFailed = False
@@ -162,7 +172,9 @@ def loop():
                 timeRangeSentTS = DW1000.getTimeStamp(data, 11)
                 computeRangeAsymmetric()
                 transmitRangeAcknowledge()
-                distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
+                # distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
+                distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.SPEED_OF_LIGHT / 1000
+                print timeComputedRangeTS
                 print("Distance: %.2f m" %(distance))
 
             else:
@@ -177,8 +189,8 @@ try:
     PIN_SS = 16
     DW1000.begin(PIN_IRQ)
     DW1000.setup(PIN_SS)
-    print("DW1000 initialized")
-    print("############### ANCHOR ##############")
+    #print("DW1000 initialized")
+    #print("############### ANCHOR ##############")
 
     DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_RANGE_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
