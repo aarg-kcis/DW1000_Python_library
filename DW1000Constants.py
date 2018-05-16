@@ -391,7 +391,7 @@ RANGE_REPORT = 3
 BLINK = 4
 RANGE_FAILED = 255
 
-RESET_PERIOD = 250
+RESET_PERIOD = 1000 #250
 
 # Bits/Bytes operation
 MASK_LS_BYTE = 0xFF
@@ -412,6 +412,7 @@ ADJUSTMENT_TIME_FACTOR = 0.001
 # Speed of radio waves [m/s] * timestamp resolution [~15.65ps] of DW1000
 DISTANCE_OF_RADIO = 0.0046917639786159
 DISTANCE_OF_RADIO_INV = 213.139451293
+SPEED_OF_LIGHT = 3e8
 
 
 # Operation mode bits
