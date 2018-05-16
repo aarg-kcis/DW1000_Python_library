@@ -155,7 +155,7 @@ def loop():
         #print "setting data ", data
         msgId = data[0]
         if msgId != expectedMsgId:
-            #print "protocolFailed"
+            print "protocolFailed"
             protocolFailed = True
         if msgId == C.POLL:
             protocolFailed = False
@@ -172,8 +172,8 @@ def loop():
                 timeRangeSentTS = DW1000.getTimeStamp(data, 11)
                 computeRangeAsymmetric()
                 transmitRangeAcknowledge()
-                # distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
-                distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.SPEED_OF_LIGHT / 1000
+                distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
+                # distance = (timeComputedRangeTS % C.TIME_OVERFLOW) * C.SPEED_OF_LIGHT / 1000
                 print timeComputedRangeTS
                 print("Distance: %.2f m" %(distance))
 
