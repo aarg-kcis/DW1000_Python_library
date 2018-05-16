@@ -483,7 +483,7 @@ def generalConfiguration(address, mode):
     currentShortAddress[0] = randint(0, 256)
     currentShortAddress[1] = randint(0, 256)
     deviceAddress = currentShortAddress[0] * 256 + currentShortAddress[1]
-
+    
     # configure mode, network
     newConfiguration()
     setDefaultConfiguration()
@@ -495,12 +495,14 @@ def generalConfiguration(address, mode):
     setAntennaDelay(C.ANTENNA_DELAY)
     commitConfiguration()
 
+
     data = [0] * 4
     data2 = [0] * 8
     data3 = [0] * 4
     readBytes(C.DEV_ID, C.NO_SUB, data, 4)
     readBytes(C.EUI, C.NO_SUB, data2, 8)
     readBytes(C.PANADR, C.NO_SUB, data3, 4)
+
     print("\nDevice ID %02X - model: %d, version: %d, revision: %d" %
           ((data[3] << 8) | data[2], (data[1]), (data[0] >> 4) & C.MASK_NIBBLE, data[0] & C.MASK_NIBBLE))
     print("Unique ID: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X" % (
@@ -1333,8 +1335,7 @@ def readBytes(cmd, offset, data, n):
 
     GPIO.output(_chipSelect, GPIO.LOW)
     for i in range(0, headerLen):
-        spi.xfer([int(header[i])])
-
+        a = spi.xfer([int(header[i])])
     for i in range(0, n):
         data[i] = spi.xfer([C.JUNK])[0]
 
