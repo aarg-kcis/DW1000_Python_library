@@ -113,14 +113,14 @@ def transmitRange(address):
     """
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
-    global data, k
+    global data
     #print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
     data[16] = myAddress
     data[17] = address
     data[18] = anchor_list[address].sequenceNumber
-    anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(7000+k, C.MICROSECONDS)
+    anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(7000, C.MICROSECONDS)
     DW1000.setTimeStamp(data, anchor_list[address].timePollSent[data[18]], 1)
     DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived[data[18]], 6)
     DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent[data[18]], 11)

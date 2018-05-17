@@ -89,9 +89,9 @@ def handleInterrupt(channel):
     """
     Callback invoked on the rising edge of the interrupt pin. Handle the configured interruptions.
     """
-    print("\nInterrupt!")
+    # print("\nInterrupt!")
     readBytes(C.SYS_STATUS, C.NO_SUB, _sysstatus, 5)
-    print(_sysstatus)
+    # print(_sysstatus)
     msgReceived = getBit(_sysstatus, 5, C.RXFCG_BIT)
     receiveTimeStampAvailable = getBit(_sysstatus, 5, C.LDEDONE_BIT)
     transmitDone = getBit(_sysstatus, 5, C.TXFRS_BIT)
