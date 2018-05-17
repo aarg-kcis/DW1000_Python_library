@@ -215,7 +215,7 @@ def setDefaultConfiguration():
 
         clearAllStatus()
 
-        enableMode(C.MODE_LONGDATA_RANGE_ACCURACY)
+        enableMode(C.MODE_LONGDATA_FAST_ACCURACY)
 
 
 def enableMode(mode):
