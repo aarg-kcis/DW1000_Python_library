@@ -21,11 +21,11 @@ class DW1000Device:
     def deletePreviousSequenceData(self):
         for i in self.timestamps:
             for j in i.keys():
-                if j < self.sequenceNumber-1:
+                if j != self.sequenceNumber-1:
                     del i[j]
 
     def getRange(self):
-        assert self.type == DW1000Device.TAG, "Tags are not equipped to find distance from anchors"
+        assert self.type == DW1000Device.ANCHOR, "Anchors are not equipped to find distance from anchors"
         round1 = DW1000.wrapTimestamp(self.timePollAckReceived[self.sequenceNumber] - self.timePollSent[self.sequenceNumber])
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent[self.sequenceNumber] - self.timePollReceived[self.sequenceNumber])
         round2 = DW1000.wrapTimestamp(self.timeRangeReceived[self.sequenceNumber] - self.timePollAckSent[self.sequenceNumber])
