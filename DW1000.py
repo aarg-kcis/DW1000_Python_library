@@ -490,7 +490,7 @@ def generalConfiguration(address, mode):
     # setDeviceAddress(2)
     setDeviceAddress(deviceAddress)
     # setNetworkId(10)
-    setNetworkId(0xDECA)
+    setNetworkId(10)
     enableMode(mode)
     setAntennaDelay(C.ANTENNA_DELAY)
     commitConfiguration()
