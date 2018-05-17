@@ -46,12 +46,8 @@ def handleReceived():
     This is a callback called from the module's interrupt handler when a reception was successful. 
     It sets the received receivedAck as True so the loop can continue.
     """            
-    global receivedAck, data, timePollAckReceivedTS
+    global receivedAck
     receivedAck = True
-    data = DW1000.getData(LEN_DATA)
-    if data[0] == C.POLL_ACK:
-        timePollAckReceivedTS = DW1000.getReceiveTimestamp()
-
 
 def receiver():
     """
@@ -140,6 +136,7 @@ def loop():
             transmitPoll()
             return
         if msgID == C.POLL_ACK:
+            timePollAckReceivedTS = DW1000.getReceiveTimestamp()
             print "timePollAckReceivedTS : {}".format(timePollAckReceivedTS)
             expectedMsgId = C.RANGE_REPORT
             transmitRange()

@@ -49,14 +49,8 @@ def handleReceived():
     This is a callback called from the module's interrupt handler when a reception was successful.
     It sets the received receivedAck as True so the loop can continue.
     """
-    global receivedAck, data, timeRangeReceivedTS, timePollReceivedTS
+    global receivedAck
     receivedAck = True
-    data = DW1000.getData(LEN_DATA)
-    if data[0] == C.POLL:
-        timePollReceivedTS = DW1000.getReceiveTimestamp()
-    if data[0] == C.RANGE:
-        timeRangeReceivedTS = DW1000.getReceiveTimestamp()
-
 
 
 def noteActivity():
@@ -143,9 +137,11 @@ def computeRangeAsymmetric():
     reply1 = DW1000.wrapTimestamp(timePollAckSentTS - timePollReceivedTS)
     round2 = DW1000.wrapTimestamp(timeRangeReceivedTS - timePollAckSentTS)
     reply2 = DW1000.wrapTimestamp(timeRangeSentTS - timePollAckReceivedTS)
-    print "ROUND 1: ", round1,reply1, round1>reply1
-    print "ROUND 2: ", round2,reply2, round2>reply2
+    print "ROUND 1: ", round1,reply1
+    print "ROUND 2: ", round2,reply2
     timeComputedRangeTS = (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
+    # timeComputedRangeTS = (round2 + round1 - reply1 - reply2)/2
+
 
 def loop():
     global sentAck, receivedAck, timePollAckSentTS, timePollReceivedTS, timePollSentTS, timePollAckReceivedTS, timeRangeReceivedTS, protocolFailed, data, expectedMsgId, timeRangeSentTS, SEQ_NO
@@ -166,20 +162,22 @@ def loop():
 
     if receivedAck:
         receivedAck = False
+        data = DW1000.getData(LEN_DATA)
         print "getting data ", data
         msgId = data[0]
         if msgId != expectedMsgId:
-            print "protocolFailed..got msg_id {} expected {}".format(msgId, expectedMsgId)
+            print "protocolFailed"
             protocolFailed = True
         if msgId == C.POLL:
             protocolFailed = False
+            timePollReceivedTS = DW1000.getReceiveTimestamp()
             print "timePollReceivedTS for SEQ_NO {} : {}".format(SEQ_NO, timePollReceivedTS)
             expectedMsgId = C.RANGE
             transmitPollAck()
             noteActivity()
         elif msgId == C.RANGE:
+            timeRangeReceivedTS = DW1000.getReceiveTimestamp()
             expectedMsgId = C.POLL
-            print "timeRangeReceivedTS for SEQ_NO {} : {}".format(SEQ_NO, timeRangeReceivedTS)
             if protocolFailed == False:
                 timePollSentTS = DW1000.getTimeStamp(data, 1)
                 timePollAckReceivedTS = DW1000.getTimeStamp(data, 6)
