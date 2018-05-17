@@ -169,7 +169,7 @@ def loop():
         print "getting data ", data
         msgId = data[0]
         if msgId != expectedMsgId:
-            print "protocolFailed"
+            print "protocolFailed..got msg_id {} expected {}".format(msgId, expectedMsgId)
             protocolFailed = True
         if msgId == C.POLL:
             protocolFailed = False
