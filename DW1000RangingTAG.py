@@ -17,6 +17,8 @@ lastPoll = 0
 sentAck = False
 receivedAck = False
 REPLY_DELAY_TIME_US = 7000
+# ALPHA = .000001
+# k = 0
 # The polling range frequency defines the time interval between every distance poll in milliseconds. Feel free to change its value. 
 POLL_RANGE_FREQ = 100 
 # the distance between the tag and the anchor will be estimated every second.
@@ -77,6 +79,7 @@ def resetInactive():
     global expectedMsgId
     print("Reset inactive")	
     if expectedMsgId.keys() == [] :
+        print "sas", expectedMsgId.keys(), expectedMsgId.keys()==[]
     	transmitPoll()
     	noteActivity()
     else:
@@ -110,14 +113,14 @@ def transmitRange(address):
     """
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
-    global data
+    global data, k
     #print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
     data[16] = myAddress
     data[17] = address
     data[18] = anchor_list[address].sequenceNumber
-    anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(3500, C.MICROSECONDS)
+    anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(7000+k, C.MICROSECONDS)
     DW1000.setTimeStamp(data, anchor_list[address].timePollSent[data[18]], 1)
     DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived[data[18]], 6)
     DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent[data[18]], 11)
@@ -134,7 +137,7 @@ def addAnchor(address):
 
 
 def loop():
-    global sentAck, receivedAck, data, expectedMsgId, anchor_list, myAddress
+    global sentAck, receivedAck, data, expectedMsgId, anchor_list, myAddress, k, ALPHA
 
     if (sentAck == False and receivedAck == False):
         if ((millis() - lastActivity) > C.RESET_PERIOD):
@@ -157,8 +160,8 @@ def loop():
             noteActivity()
         elif msgID == C.RANGE:
             print "Range message sent to {}".format(data[17])
-            anchor.timeRangeSent[sequence]   = DW1000.getTransmitTimestamp()
-            print "time range sent-->",anchor_list[data[17]].timeRangeSent 
+            anchor.timeRangeSentActual[sequence]   = DW1000.getTransmitTimestamp()
+            print "time range sent-->",anchor_list[data[17]].timeRangeSentActual[sequence] 
             noteActivity()
 
     if receivedAck:
@@ -174,7 +177,7 @@ def loop():
             # Add anchor to anchor_list
             addAnchor(sender)
             transmitPoll(sender)
-            print anchor_list
+            # print anchor_list
             noteActivity()
             # Now Expecting a POLL_ACK from the added anchor
         else:
@@ -202,6 +205,11 @@ def loop():
                     noteActivity()
                 elif msgID == C.RANGE_REPORT:
                     print "Got Range report"
+                    # errorInRange = anchor.timeRangeSentActual[sequence] - anchor.timeRangeSent[sequence]
+                    # print "errorInRange", errorInRange
+                    # k = k + (ALPHA**-1)*errorInRange
+                    # print "k : {}, Alpha: {}".format(k, ALPHA)
+                    # ALPHA = =
                     anchor.incrementSequenceNumber()
                     expectedMsgId[sender] = C.POLL_ACK
                     anchor.deletePreviousSequenceData()
