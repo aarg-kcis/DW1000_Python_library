@@ -48,6 +48,9 @@ def handleReceived():
     """            
     global receivedAck
     receivedAck = True
+    data = DW1000.getData(LEN_DATA)
+    if data[0] == C.POLL_ACK:
+        timePollAckReceivedTS = DW1000.getReceiveTimestamp()
 
 
 def receiver():
@@ -131,14 +134,12 @@ def loop():
 
     if receivedAck:
         receivedAck = False
-        data = DW1000.getData(LEN_DATA)
-        msgID = data[0]    
+        msgID = data[0]
         if msgID != expectedMsgId:
             expectedMsgId = C.POLL_ACK
             transmitPoll()
             return
         if msgID == C.POLL_ACK:
-            timePollAckReceivedTS = DW1000.getReceiveTimestamp()
             print "timePollAckReceivedTS : {}".format(timePollAckReceivedTS)
             expectedMsgId = C.RANGE_REPORT
             transmitRange()

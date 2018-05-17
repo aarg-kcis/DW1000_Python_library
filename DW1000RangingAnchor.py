@@ -143,8 +143,8 @@ def computeRangeAsymmetric():
     reply1 = DW1000.wrapTimestamp(timePollAckSentTS - timePollReceivedTS)
     round2 = DW1000.wrapTimestamp(timeRangeReceivedTS - timePollAckSentTS)
     reply2 = DW1000.wrapTimestamp(timeRangeSentTS - timePollAckReceivedTS)
-    print "ROUND 1: ", round1,reply1
-    print "ROUND 2: ", round2,reply2
+    print "ROUND 1: ", round1,reply1, round1>reply1
+    print "ROUND 2: ", round2,reply2, round2>reply2
     timeComputedRangeTS = (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
 
 def loop():
