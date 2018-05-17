@@ -130,6 +130,7 @@ def loop():
 
     if receivedAck:
         receivedAck = False
+        data = DW1000.getData(LEN_DATA)
         msgID = data[0]
         if msgID != expectedMsgId:
             expectedMsgId = C.POLL_ACK
