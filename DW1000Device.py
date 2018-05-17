@@ -21,7 +21,7 @@ class DW1000Device:
     def deletePreviousSequenceData(self):
         for i in self.timestamps:
             for j in i.keys():
-                if j != self.sequenceNumber:
+                if j < self.sequenceNumber-1:
                     del i[j]
 
     def getRange(self):
@@ -54,10 +54,11 @@ class DW1000Device:
         is_inactive: {}
         timePollSent: {}    
         timeRangeSent: {} 
+        timeRangeSentActual: {}
         timePollAckReceived: {}
         timePollAckSent: {} 
         timePollReceived: {}
         timeRangeReceived: {} 
         sequenceNumber: {} """.format(  self.address, self.type, self.is_inactive, self.timePollSent, \
-                                        self.timeRangeSent, self.timePollAckReceived, self.timePollAckSent, \
+                                        self.timeRangeSent, self.timeRangeSentActual, self.timePollAckReceived, self.timePollAckSent, \
                                         self.timePollReceived, self.timeRangeReceived, self.sequenceNumber)
