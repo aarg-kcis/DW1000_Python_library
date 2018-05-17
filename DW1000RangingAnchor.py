@@ -14,7 +14,7 @@ expectedMsgId = C.POLL
 protocolFailed = False
 sentAck = False
 receivedAck = False
-LEN_DATA = 16
+LEN_DATA = 20
 data = [0] * LEN_DATA
 timePollAckSentTS = 0
 timePollAckReceivedTS = 0
@@ -80,7 +80,7 @@ def transmitPollAck():
     #print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
-    data[1] = SEQ_NO
+    data[19] = SEQ_NO
     SEQ_NO += 1
     if SEQ_NO == 256:
         SEQ_NO = 0
@@ -97,7 +97,7 @@ def transmitRangeAcknowledge():
     #print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
-    data[1] = SEQ_NO
+    data[19] = SEQ_NO
     SEQ_NO += 1
     if SEQ_NO == 256:
         SEQ_NO = 0

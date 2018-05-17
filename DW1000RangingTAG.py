@@ -8,7 +8,7 @@ import DW1000
 import monotonic
 import DW1000Constants as C
 
-LEN_DATA = 16
+LEN_DATA = 20
 data = [0] * LEN_DATA
 lastActivity = 0
 lastPoll = 0
@@ -89,6 +89,7 @@ def transmitPoll():
         pass
     DW1000.newTransmit()
     data[0] = C.POLL
+    data[18] = data[19]
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
     lastPoll = millis()
@@ -102,6 +103,7 @@ def transmitRange():
     print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
+    data[18] = data[19]
     timeRangeSentTS = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
     DW1000.setTimeStamp(data, timePollSentTS, 1)
     DW1000.setTimeStamp(data, timePollAckReceivedTS, 6)
