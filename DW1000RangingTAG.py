@@ -124,6 +124,7 @@ def loop():
         msgID = data[0]      
         if msgID == C.POLL:
             timePollSentTS = DW1000.getTransmitTimestamp()
+            print "timePollSentTS : {}".format(timePollSentTS)
         elif msgID == C.RANGE:
             timeRangeSentTS = DW1000.getTransmitTimestamp()
             noteActivity()
@@ -138,6 +139,7 @@ def loop():
             return
         if msgID == C.POLL_ACK:
             timePollAckReceivedTS = DW1000.getReceiveTimestamp()
+            print "timePollAckReceivedTS : {}".format(timePollAckReceivedTS)
             expectedMsgId = C.RANGE_REPORT
             transmitRange()
             noteActivity()
