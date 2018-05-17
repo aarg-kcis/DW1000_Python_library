@@ -10,7 +10,6 @@ import DW1000Constants as C
 from DW1000Device import DW1000Device
 
 
-
 lastActivity = 0
 protocolFailed = False
 sentAck = False
@@ -163,8 +162,13 @@ def loop():
     if sentAck:
         sentAck = False
         msgId = data[0]
+        tag = tag_list[data[17]]
         if msgId == C.POLL_ACK:
-            timePollAckSentTS = DW1000.getTransmitTimestamp()
+            print "Sending poll ack to {}".format(data[17])
+            tag.timePollAckSent = DW1000.getTransmitTimestamp()
+            noteActivity()
+        if msgId == C.RANGE_REPORT:
+            print "Sending Range Report to {}".format(data[17])
             noteActivity()
 
     if receivedAck:
@@ -174,41 +178,54 @@ def loop():
         sender      = data[16]
         receiver    = data[17]
         if sender not in tag_list:
+            print "Adding {} to tag list".format(sender)
+            print data
             # Add tag to tag_list
             addTag(sender)
             # Send a dummy POLL_ACK so that the tag can add this anchor to its list and send data.
             transmitPollAck(sender)
+            print tag_list
         else:
             if receiver != myAddress:
+                print "Message was for {} :(".format(receiver)
+                print "expecting {}".format(expectedMsgId)
                 # Message wasn't meant for us
                 return
+            elif receiver == 0xFF:
+                resetInactive()
             else:
                 if msgId != expectedMsgId[sender]:
+                    print "MessageID not expected :( got {} expected {}".format(msgId, expectedMsgId[sender])
                     print "protocolFailed"
                     protocolFailed = True
+                tag = tag_list[sender]
+                sequence = data[18]
+                tag.sequenceNumber = sequence
                 if msgId == C.POLL:
+                    print "Got poll"
                     protocolFailed = False
-                    tag_list[sender].timePollReceived = DW1000.getReceiveTimestamp()
+                    tag.timePollReceived[sequence] = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.RANGE
                     transmitPollAck(sender)
                     noteActivity()
                 if msgId == C.RANGE:
-                    tag_list[sender].timeRangeReceived = DW1000.getReceiveTimestamp()
+                    print "Got Range report"
+                    tag.timeRangeReceived = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.POLL
                     if protocolFailed == False:
-                        tag_list[sender].timePollSent = DW1000.getTimeStamp(data, 1)
-                        tag_list[sender].timePollAckReceived = DW1000.getTimeStamp(data, 6)
-                        tag_list[sender].timeRangeSent = DW1000.getTimeStamp(data, 11)
-                        print data
-                        # print tag_list[sender]
+                        tag.timePollSent = DW1000.getTimeStamp(data, 1)
+                        tag.timePollAckReceived = DW1000.getTimeStamp(data, 6)
+                        tag.timeRangeSent = DW1000.getTimeStamp(data, 11)
+                        print tag
                         transmitRangeAcknowledge(sender)
                         distance = (tag_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
                         print("Distance: %.2f m" %(distance))
 
                     else:
-                        transmitRangeFailed(address)
+                        print "range failed"
+                        transmitRangeFailed(sender)
 
-                noteActivity()
+        noteActivity()
 
 try:
     PIN_IRQ = 19
