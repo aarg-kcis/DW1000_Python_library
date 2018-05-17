@@ -83,7 +83,7 @@ def transmitPoll():
     It checks if an anchor is operational.
     """    
     global data, lastPoll
-    print "polling"
+    #print "polling"
     while (millis() - lastPoll < POLL_RANGE_FREQ):
         pass
     DW1000.newTransmit()
@@ -99,7 +99,7 @@ def transmitRange():
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
     global data, timeRangeSentTS
-    print "transmitting range"
+    #print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
     data[18] = data[19]
@@ -123,7 +123,7 @@ def loop():
         msgID = data[0]      
         if msgID == C.POLL:
             timePollSentTS = DW1000.getTransmitTimestamp()
-            print "timePollSentTS : {}".format(timePollSentTS)
+            #print "timePollSentTS : {}".format(timePollSentTS)
         elif msgID == C.RANGE:
             timeRangeSentTS = DW1000.getTransmitTimestamp()
             noteActivity()
@@ -138,7 +138,7 @@ def loop():
             return
         if msgID == C.POLL_ACK:
             timePollAckReceivedTS = DW1000.getReceiveTimestamp()
-            print "timePollAckReceivedTS : {}".format(timePollAckReceivedTS)
+            #print "timePollAckReceivedTS : {}".format(timePollAckReceivedTS)
             expectedMsgId = C.RANGE_REPORT
             transmitRange()
             noteActivity()
@@ -157,8 +157,8 @@ try:
     PIN_SS = 16
     DW1000.begin(PIN_IRQ)
     DW1000.setup(PIN_SS)
-    print("DW1000 initialized")
-    print("############### TAG ##############")	
+    #print("DW1000 initialized")
+    #print("############### TAG ##############")	
 
     DW1000.generalConfiguration("7D:00:22:EA:82:60:3B:9C", C.MODE_LONGDATA_RANGE_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
