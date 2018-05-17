@@ -120,11 +120,6 @@ def transmitRange(address):
     data[16] = myAddress
     data[17] = address
     data[18] = anchor_list[address].sequenceNumber
-    # anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(7000, C.MICROSECONDS)
-    # DW1000.setTimeStamp(data, anchor_list[address].timePollSent[data[18]], 1)
-    # DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived[data[18]], 6)
-    # DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent[data[18]], 11)
-    # print anchor_list[address]
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -213,11 +208,6 @@ def loop():
                         anchor.timePollReceived[sequence] = DW1000.getTimeStamp(data, 1)
                         anchor.timePollAckSent[sequence] = DW1000.getTimeStamp(data, 6)
                         anchor.timeRangeReceived[sequence] = DW1000.getTimeStamp(data, 11)
-                    # errorInRange = anchor.timeRangeSentActual[sequence] - anchor.timeRangeSent[sequence]
-                    # print "errorInRange", errorInRange
-                    # k = k + (ALPHA**-1)*errorInRange
-                    # print "k : {}, Alpha: {}".format(k, ALPHA)
-                    # ALPHA = =
                         distance = (anchor_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
                         print("Distance: %.2f m" %(distance))
                         anchor.incrementSequenceNumber()
