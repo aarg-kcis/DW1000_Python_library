@@ -24,6 +24,7 @@ timePollSentTS = 0
 timeRangeSentTS = 0
 timeComputedRangeTS = 0
 REPLY_DELAY_TIME_US = 7000 
+SEQ_NO = 0
 
 
 def millis():
@@ -75,10 +76,14 @@ def transmitPollAck():
     """
     This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
     """        
-    global data
+    global data, SEQ_NO
     #print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
+    data[1] = SEQ_NO
+    SEQ_NO += 1
+    if SEQ_NO == 256:
+        SEQ_NO = 0
     DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
@@ -88,10 +93,14 @@ def transmitRangeAcknowledge():
     """
     This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
     """
-    global data
+    global data, SEQ_NO
     #print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
+    data[1] = SEQ_NO
+    SEQ_NO += 1
+    if SEQ_NO == 256:
+        SEQ_NO = 0
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -134,7 +143,7 @@ def computeRangeAsymmetric():
 
 
 def loop():
-    global sentAck, receivedAck, timePollAckSentTS, timePollReceivedTS, timePollSentTS, timePollAckReceivedTS, timeRangeReceivedTS, protocolFailed, data, expectedMsgId, timeRangeSentTS
+    global sentAck, receivedAck, timePollAckSentTS, timePollReceivedTS, timePollSentTS, timePollAckReceivedTS, timeRangeReceivedTS, protocolFailed, data, expectedMsgId, timeRangeSentTS, SEQ_NO
     if (sentAck == False and receivedAck == False):
         if ((millis() - lastActivity) > C.RESET_PERIOD):
             resetInactive()
@@ -147,12 +156,13 @@ def loop():
         if msgId == C.POLL_ACK:
             #print "pollack"
             timePollAckSentTS = DW1000.getTransmitTimestamp()
+            print "timePollAckSentTS for SEQ_NO {} : {}".format(SEQ_NO, timePollAckSentTS)
             noteActivity()
 
     if receivedAck:
         receivedAck = False
         data = DW1000.getData(LEN_DATA)
-        #print "setting data ", data
+        print "getting data ", data
         msgId = data[0]
         if msgId != expectedMsgId:
             print "protocolFailed"
@@ -160,6 +170,7 @@ def loop():
         if msgId == C.POLL:
             protocolFailed = False
             timePollReceivedTS = DW1000.getReceiveTimestamp()
+            print "timePollReceivedTS for SEQ_NO {} : {}".format(SEQ_NO, timePollReceivedTS)
             expectedMsgId = C.RANGE
             transmitPollAck()
             noteActivity()
