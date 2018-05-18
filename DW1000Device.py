@@ -1,7 +1,7 @@
 import DW1000
-TAG     = 0
-ANCHOR  = 1
 class DW1000Device:
+    TAG = 0
+    ANCHOR = 1
     def __init__(self, address, type_of_tag):
         self.address                = address
         self.type                   = type_of_tag
