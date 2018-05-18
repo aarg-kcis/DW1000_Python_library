@@ -117,9 +117,9 @@ def transmitRange(address):
     data[18] = SEQ_NO
     SEQ_NO += 1
     anchor_list[address].timeRangeSentTS = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
-    DW1000.setTimeStamp(data, anchor_list[address].timePollSentTS, 1)
-    DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceivedTS, 6)
-    DW1000.setTimeStamp(data, anchor_list[address].timeRangeSentTS, 11)
+    DW1000.setTimeStamp(data, anchor_list[address].timePollSent, 1)
+    DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived, 6)
+    DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent, 11)
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
