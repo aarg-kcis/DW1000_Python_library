@@ -7,6 +7,8 @@ It requires the following modules: DW1000, DW1000Constants and monotonic.
 import DW1000
 import monotonic
 import DW1000Constants as C
+from DW1000Device import DW1000Device
+
 
 
 lastActivity = 0
