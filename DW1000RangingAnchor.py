@@ -24,6 +24,7 @@ expectedMsgId = {}
 # Contains the expected message ID of the Devices as key value pairs. key = device address, value = expectedMsgId
 # TODO: Implement this as an attribute of the DW1000Device object's attribute
 myAddress = 1
+nodeType = 1 # ANCHOR
 # Current Device's Address
 
 
@@ -77,12 +78,13 @@ def transmitPollAck(address):
     """
     This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
     """        
-    global data, myAddress
+    global data, myAddress, nodeType
     print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
     data[16] = myAddress
     data[17] = address
+    data[19] = nodeType
     DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
@@ -92,12 +94,13 @@ def transmitRangeAcknowledge(address):
     """
     This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
     """
-    global data, myAddress
+    global data, myAddress, nodeType
     ##print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
     data[16] = myAddress
     data[17] = address
+    data[19] = nodeType
     sequence = tag_list[address].sequenceNumber
     DW1000.setTimeStamp(data, tag_list[address].timePollReceived[sequence], 1)
     DW1000.setTimeStamp(data, tag_list[address].timePollAckSent[sequence], 6)
@@ -140,7 +143,7 @@ def addTag(address):
 
 
 def loop():
-    global sentAck, receivedAck, timePollAckSentTS, timePollReceivedTS, timePollSentTS, timePollAckReceivedTS, timeRangeReceivedTS, protocolFailed, data, expectedMsgId, timeRangeSentTS, tag_list, myAddress
+    global sentAck, receivedAck, timePollAckSentTS, timePollReceivedTS, timePollSentTS, timePollAckReceivedTS, timeRangeReceivedTS, protocolFailed, data, expectedMsgId, timeRangeSentTS, tag_list, myAddress, nodeType
 
     if (sentAck == False and receivedAck == False):
         if ((millis() - lastActivity) > C.RESET_PERIOD):
@@ -163,9 +166,15 @@ def loop():
     if receivedAck:
         receivedAck = False
         data = DW1000.getData(LEN_DATA)
-        msgId       = data[0]
-        sender      = data[16]
-        receiver    = data[17]
+        msgId           = data[0]
+        sender          = data[16]
+        receiver        = data[17]
+        typeOfSender    = data[19]
+
+        if nodeType != typeOfSender:
+            # Only accept packets from tags
+            # ignore packets from anchors...
+            return
         if sender not in tag_list:
             print "Adding {} to tag list".format(sender)
             print data
