@@ -175,8 +175,8 @@ def loop():
                 return
             else:
                 # Message was meant for us 
-                if msgID != expectedMsgId:
-                    print "MessageID not expected :("
+                if msgID != expectedMsgId[sender]:
+                    print "MessageID not expected :( got {} expected {}".format(msgID, expectedMsgId[sender])
                     # Message ID received wasn'nt what we expected so resetting
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)

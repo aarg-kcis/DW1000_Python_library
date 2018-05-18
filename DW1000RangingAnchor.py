@@ -183,7 +183,7 @@ def loop():
                 # Message wasn't meant for us
                 return
             else:
-                if msgId != expectedMsgId:
+                if msgId != expectedMsgId[sender]:
                     print "protocolFailed"
                     protocolFailed = True
                 if msgId == C.POLL:
