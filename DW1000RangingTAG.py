@@ -143,7 +143,9 @@ def loop():
         sentAck = False
         msgID = data[0]      
         if msgID == C.POLL:
-            anchor_list[data[17]].timePollSentTS    = DW1000.getTransmitTimestamp()
+            # Check if broadcast message
+            if data[17] != 0xFF:
+                anchor_list[data[17]].timePollSentTS    = DW1000.getTransmitTimestamp()
             noteActivity()
         elif msgID == C.RANGE:
             anchor_list[data[17]].timeRangeSentTS   = DW1000.getTransmitTimestamp()
