@@ -15,12 +15,11 @@ class DW1000Device:
         self.sequenceNumber         = 0
 
     def getRange(self):
-        global TAG
-        assert self.type == TAG, "Tags are not equipped to find distance from anchors"
+        assert self.type == DW1000Device.TAG, "Tags are not equipped to find distance from anchors"
         round1 = DW1000.wrapTimestamp(self.timePollAckReceived - self.timePollSent)
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent - self.timePollReceived)
         round2 = DW1000.wrapTimestamp(self.timeRangeReceived - self.timePollAckSent)
-        reply2 = DW1000.wrapTimestamp(self.timeRangeSent - timePollAckReceived)
+        reply2 = DW1000.wrapTimestamp(self.timeRangeSent - self.timePollAckReceived)
         return (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
 
     def is_inactive(self):
