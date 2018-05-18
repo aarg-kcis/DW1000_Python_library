@@ -199,7 +199,8 @@ def loop():
                         tag_list[sender].timePollSent = DW1000.getTimeStamp(data, 1)
                         tag_list[sender].timePollAckReceived = DW1000.getTimeStamp(data, 6)
                         tag_list[sender].timeRangeSent = DW1000.getTimeStamp(data, 11)
-                        print tag_list[sender]
+                        print data
+                        # print tag_list[sender]
                         transmitRangeAcknowledge(sender)
                         distance = (tag_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
                         print("Distance: %.2f m" %(distance))
