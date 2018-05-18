@@ -15,6 +15,7 @@ class DW1000Device:
         self.sequenceNumber         = 0
 
     def getRange(self):
+        global TAG
         assert self.type == TAG, "Tags are not equipped to find distance from anchors"
         round1 = DW1000.wrapTimestamp(self.timePollAckReceived - self.timePollSent)
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent - self.timePollReceived)
