@@ -35,7 +35,7 @@ class DW1000Device:
         self.sequenceNumber += 1
 
     def __str__(self):
-        print """address: {}\n   
+        return """address: {}\n   
         type: {}\n 
         is_inactive: {} \n
         timePollSent: {} \n       
