@@ -115,6 +115,7 @@ def transmitRange(address):
     data[16] = myAddress
     data[17] = address
     data[18] = SEQ_NO
+    SEQ_NO += 1
     anchor_list[address].timeRangeSentTS = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
     DW1000.setTimeStamp(data, anchor_list[address].timePollSentTS, 1)
     DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceivedTS, 6)
@@ -131,7 +132,7 @@ def addAnchor(address):
 
 
 def loop():
-    global sentAck, receivedAck, data, timePollAckReceivedTS, timePollSentTS, timeRangeSentTS, expectedMsgId, anchor_list
+    global sentAck, receivedAck, data, timePollAckReceivedTS, timePollSentTS, timeRangeSentTS, expectedMsgId, anchor_list, myAddress
 
     if (sentAck == False and receivedAck == False):
         if ((millis() - lastActivity) > C.RESET_PERIOD):
