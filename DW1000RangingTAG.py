@@ -160,7 +160,7 @@ try:
     #print("DW1000 initialized")
     #print("############### TAG ##############")	
 
-    DW1000.generalConfiguration("7D:00:22:EA:82:60:3B:9C", C.MODE_LONGDATA_FAST_ACCURACY)
+    DW1000.generalConfiguration("7D:00:22:EA:82:60:3B:9C", C.MODE_SHORTDATA_FAST_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
     DW1000.registerCallback("handleReceived", handleReceived)
     DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
