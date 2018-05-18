@@ -120,7 +120,7 @@ def transmitRange(address):
     DW1000.setTimeStamp(data, anchor_list[address].timePollSent, 1)
     DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived, 6)
     DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent, 11)
-    print anchor_list[sender]
+    print anchor_list[address]
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
