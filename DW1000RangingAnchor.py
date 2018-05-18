@@ -54,7 +54,6 @@ def handleReceived():
     It sets the received receivedAck as True so the loop can continue.
     """
     global receivedAck
-    print "Receiving"
     receivedAck = True
 
 
@@ -171,7 +170,6 @@ def loop():
     if receivedAck:
         receivedAck = False
         data = DW1000.getData(LEN_DATA)
-        print data
         msgId       = data[0]
         sender      = data[16]
         receiver    = data[17]

@@ -145,9 +145,11 @@ def loop():
         if msgID == C.POLL:
             # Check if broadcast message
             if data[17] != 0xFF:
+                print "Sending poll to {}".format(data[17])
                 anchor_list[data[17]].timePollSentTS    = DW1000.getTransmitTimestamp()
             noteActivity()
         elif msgID == C.RANGE:
+            print "Range message sent to {}".format(data[17])
             anchor_list[data[17]].timeRangeSentTS   = DW1000.getTransmitTimestamp()
             noteActivity()
 
@@ -159,33 +161,40 @@ def loop():
         receiver    = data[17]
         # Check if sender is in anchor_list or not 
         if sender not in anchor_list:
+            print "Adding {} to anchor list".format(sender)
             # Add anchor to anchor_list
             addAnchor(sender)
             transmitPoll(sender)
+            print anchor_list
             # Now Expecting a POLL_ACK from the added anchor
         else:
             # Check if message was intended for this TAG or not
             if receiver != myAddress:
+                print "Message wasn't for me :("
                 # Message wasn't for this tag, so we will ignore this 
                 return
             else:
                 # Message was meant for us 
                 if msgID != expectedMsgId:
+                    print "MessageID not expected :("
                     # Message ID received wasn'nt what we expected so resetting
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     return
                 # Message ID is what we expected
                 if msgID == C.POLL_ACK:
+                    print "Got poll ACK"
                     anchor_list[sender].timePollAckReceived = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.RANGE_REPORT
                     transmitRange(sender)
                     noteActivity()
                 elif msgID == C.RANGE_REPORT:
+                    print "Got Range report"
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     noteActivity()
                 elif msgID == C.RANGE_FAILED:
+                    print "range failed"
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     noteActivity()
