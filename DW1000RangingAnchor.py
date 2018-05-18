@@ -52,6 +52,7 @@ def handleReceived():
     It sets the received receivedAck as True so the loop can continue.
     """
     global receivedAck
+    print "Receiving"
     receivedAck = True
 
 
@@ -79,7 +80,7 @@ def transmitPollAck(address):
     """
     This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
     """        
-    global data
+    global data, myAddress
     ##print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
@@ -94,7 +95,7 @@ def transmitRangeAcknowledge(address):
     """
     This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
     """
-    global data
+    global data, myAddress
     ##print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
@@ -108,7 +109,7 @@ def transmitRangeFailed(address):
     """
     This functions sends the range failed message which tells the tag that the ranging function has failed and to start another ranging transmission.
     """
-    global data
+    global data, myAddress
     ##print "transmitRangeFailed"
     DW1000.newTransmit()
     data[0] = C.RANGE_FAILED
@@ -123,7 +124,7 @@ def receiver():
     This function configures the chip to prepare for a message reception.
     """
     global data
-    ##print "receiver"
+    print "receiver"
     DW1000.newReceive()
     DW1000.receivePermanently()
     DW1000.startReceive()
@@ -168,6 +169,7 @@ def loop():
     if receivedAck:
         receivedAck = False
         data = DW1000.getData(LEN_DATA)
+        print data
         msgId       = data[0]
         sender      = data[16]
         receiver    = data[17]
