@@ -33,3 +33,18 @@ class DW1000Device:
 
     def incrementSequenceNumber(self):
         self.sequenceNumber += 1
+
+    def __str__(self):
+        print """address: {}\n   
+        type: {}\n 
+        is_inactive: {} \n
+        timePollSent: {} \n       
+        timeRangeSent: {} \n  
+        timePollAckReceived: {} \n   
+        timePollAckSent: {}  \n      
+        timePollReceived: {} \n   
+        timeRangeReceived: {} \n      
+        sequenceNumber: {} """.format(self.address, self.type,          
+        self.is_inactive,           self.timePollSent,          self.timeRangeSent,         self.timePollAckReceived,        self.timePollAckSent,  
+        self.timePollReceived,         self.timeRangeReceived,
+        self.sequenceNumber)

@@ -196,6 +196,7 @@ def loop():
                     tag_list[sender].timeRangeReceived = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.POLL
                     if protocolFailed == False:
+                        print tag_list[sender]
                         tag_list[sender].timePollSent = DW1000.getTimeStamp(data, 1)
                         tag_list[sender].timePollAckReceived = DW1000.getTimeStamp(data, 6)
                         tag_list[sender].timeRangeSent = DW1000.getTimeStamp(data, 11)
