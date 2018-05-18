@@ -108,7 +108,7 @@ def transmitRange(address):
     """
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
-    global data, timeRangeSentTS
+    global data, timeRangeSentTS, SEQ_NO
     #print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
