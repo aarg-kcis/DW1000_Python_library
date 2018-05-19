@@ -9,6 +9,7 @@ import monotonic
 import DW1000Constants as C
 from DW1000Device import DW1000Device
 
+
 LEN_DATA = 20
 data = [0] * LEN_DATA
 lastActivity = 0
@@ -77,10 +78,10 @@ def resetInactive():
     This function restarts the default polling operation when the device is deemed inactive.
     """
     global expectedMsgId
-    print("Reset inactive")	
+    #print("Reset inactive")	
     for i in expectedMsgId.keys():
+        transmitPoll(i)
         expectedMsgId[i] = C.POLL_ACK
-    transmitPoll()
     noteActivity()
 
 
@@ -90,15 +91,14 @@ def transmitPoll(address=0xFF):
     It checks if an anchor is operational.
     """    
     global data, lastPoll, SEQ_NO
-    #print "polling"
+    ##print "polling"
     while (millis() - lastPoll < POLL_RANGE_FREQ):
         pass
     DW1000.newTransmit()
     data[0] = C.POLL
     data[16] = myAddress
     data[17] = address
-    data[18] = SEQ_NO
-    SEQ_NO += 1
+    data[18] = anchor_list[address].sequenceNumber
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
     lastPoll = millis()
@@ -108,19 +108,18 @@ def transmitRange(address):
     """
     This function sends the range message containing the timestamps used to calculate the range between the devices.
     """
-    global data, timeRangeSentTS, SEQ_NO
-    #print "transmitting range"
+    global data
+    ##print "transmitting range"
     DW1000.newTransmit()
     data[0] = C.RANGE
     data[16] = myAddress
     data[17] = address
-    data[18] = SEQ_NO
-    SEQ_NO += 1
-    anchor_list[address].timeRangeSentTS = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
+    data[18] = anchor_list[address].sequenceNumber
+    # anchor_list[address].timeRangeSent = DW1000.setDelay(3500, C.MICROSECONDS)
     DW1000.setTimeStamp(data, anchor_list[address].timePollSent, 1)
     DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived, 6)
     DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent, 11)
-    print anchor_list[address]
+    #print anchor_list[address]
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -137,21 +136,26 @@ def loop():
 
     if (sentAck == False and receivedAck == False):
         if ((millis() - lastActivity) > C.RESET_PERIOD):
+            #print "asd"
             resetInactive()
         return
 
     if sentAck:
         sentAck = False
         msgID = data[0]      
+        anchor = anchor_list[data[17]]
+        sequence = anchor.sequenceNumber
         if msgID == C.POLL:
             # Check if broadcast message
             if data[17] != 0xFF:
-                print "Sending poll to {}".format(data[17])
-                anchor_list[data[17]].timePollSentTS    = DW1000.getTransmitTimestamp()
+                #print "Sending poll to {}".format(data[17])
+                anchor.timePollSent[sequence] = DW1000.getTransmitTimestamp()
+                print "time poll sent-->",anchor_list[data[17]].timePollSent 
             noteActivity()
         elif msgID == C.RANGE:
-            print "Range message sent to {}".format(data[17])
-            anchor_list[data[17]].timeRangeSentTS   = DW1000.getTransmitTimestamp()
+            #print "Range message sent to {}".format(data[17])
+            anchor.timeRangeSent[sequence]   = DW1000.getTransmitTimestamp()
+            print "time range sent-->",anchor_list[data[17]].timeRangeSent 
             noteActivity()
 
     if receivedAck:
@@ -162,40 +166,43 @@ def loop():
         receiver    = data[17]
         # Check if sender is in anchor_list or not 
         if sender not in anchor_list:
-            print "Adding {} to anchor list".format(sender)
+            #print "Adding {} to anchor list".format(sender)
             # Add anchor to anchor_list
             addAnchor(sender)
             transmitPoll(sender)
-            print anchor_list
+            #print anchor_list
+            noteActivity()
             # Now Expecting a POLL_ACK from the added anchor
         else:
             # Check if message was intended for this TAG or not
             if receiver != myAddress:
-                print "Message wasn't for me :("
+                #print "Message wasn't for me :("
                 # Message wasn't for this tag, so we will ignore this 
                 return
             else:
                 # Message was meant for us 
                 if msgID != expectedMsgId[sender]:
-                    print "MessageID not expected :( got {} expected {}".format(msgID, expectedMsgId[sender])
+                    #print "MessageID not expected :( got {} expected {}".format(msgID, expectedMsgId[sender])
                     # Message ID received wasn'nt what we expected so resetting
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     return
                 # Message ID is what we expected
                 if msgID == C.POLL_ACK:
-                    print "Got poll ACK"
+                    #print "Got poll ACK"
                     anchor_list[sender].timePollAckReceived = DW1000.getReceiveTimestamp()
+                    print "time poll ack received-->",anchor_list[data[16]].timePollAckReceived 
                     expectedMsgId[sender] = C.RANGE_REPORT
                     transmitRange(sender)
                     noteActivity()
                 elif msgID == C.RANGE_REPORT:
-                    print "Got Range report"
+                    #print "Got Range report"
+                    anchor_list[sender].incrementSequenceNumber()
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     noteActivity()
                 elif msgID == C.RANGE_FAILED:
-                    print "range failed"
+                    #print "range failed"
                     expectedMsgId[sender] = C.POLL_ACK
                     transmitPoll(sender)
                     noteActivity()
@@ -206,8 +213,8 @@ try:
     PIN_SS = 16
     DW1000.begin(PIN_IRQ)
     DW1000.setup(PIN_SS)
-    # print("DW1000 initialized")
-    # print("############### TAG ##############")	
+    # #print("DW1000 initialized")
+    # #print("############### TAG ##############")	
 
     DW1000.generalConfiguration("7D:00:22:EA:82:60:3B:9C", C.MODE_LONGDATA_FAST_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
