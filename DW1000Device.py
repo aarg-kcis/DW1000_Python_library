@@ -13,6 +13,7 @@ class DW1000Device:
         self.timePollReceived       = 0
         self.timeRangeReceived      = 0
         self.sequenceNumber         = 0
+        self.data                   = []
 
     def getRange(self):
         assert self.type == DW1000Device.TAG, "Tags are not equipped to find distance from anchors"
@@ -20,6 +21,8 @@ class DW1000Device:
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent - self.timePollReceived)
         round2 = DW1000.wrapTimestamp(self.timeRangeReceived - self.timePollAckSent)
         reply2 = DW1000.wrapTimestamp(self.timeRangeSent - self.timePollAckReceived)
+        print "round1 {} reply1 {}".format(round1, reply1)
+        print "round2 {} reply2 {}".format(round2, reply2)
         return (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
 
     def is_inactive(self):
@@ -36,15 +39,14 @@ class DW1000Device:
 
     def __str__(self):
         return """address: {}\n   
-        type: {}\n 
-        is_inactive: {} \n
-        timePollSent: {} \n       
-        timeRangeSent: {} \n  
-        timePollAckReceived: {} \n   
-        timePollAckSent: {}  \n      
-        timePollReceived: {} \n   
-        timeRangeReceived: {} \n      
-        sequenceNumber: {} """.format(self.address, self.type,          
-        self.is_inactive,           self.timePollSent,          self.timeRangeSent,         self.timePollAckReceived,        self.timePollAckSent,  
-        self.timePollReceived,         self.timeRangeReceived,
-        self.sequenceNumber)
+        type: {}
+        is_inactive: {}
+        timePollSent: {}    
+        timeRangeSent: {} 
+        timePollAckReceived: {}
+        timePollAckSent: {} 
+        timePollReceived: {}
+        timeRangeReceived: {} 
+        sequenceNumber: {} """.format(self.address, self.type, self.is_inactive, self.timePollSent, \
+                                        self.timeRangeSent, self.timePollAckReceived, self.timePollAckSent, \
+                                        self.timePollReceived, self.timeRangeReceived, self.sequenceNumber)
