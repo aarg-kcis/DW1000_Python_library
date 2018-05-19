@@ -17,7 +17,7 @@ class DW1000Device:
         self.timestamps             = [ self.timePollSent, self.timeRangeSent, self.timePollAckReceived, \
                                         self.timePollAckSent, self.timePollReceived, self.timeRangeReceived]
 
-    del deletePreviousSequenceData(self):
+    def deletePreviousSequenceData(self):
         for i in self.timestamps:
             for j in i.keys():
                 if j != self.sequenceNumber:
