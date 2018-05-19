@@ -177,7 +177,7 @@ def loop():
         msgId       = data[0]
         sender      = data[16]
         receiver    = data[17]
-        if sender not in tag_list:
+        if sender not in tag_list and sender != 0xFF:
             print "Adding {} to tag list".format(sender)
             print data
             # Add tag to tag_list
