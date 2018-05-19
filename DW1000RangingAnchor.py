@@ -163,9 +163,10 @@ def loop():
         sentAck = False
         msgId = data[0]
         tag = tag_list[data[17]]
+        sequence = data[18]
         if msgId == C.POLL_ACK:
             print "Sending poll ack to {}".format(data[17])
-            tag.timePollAckSent = DW1000.getTransmitTimestamp()
+            tag.timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
             noteActivity()
         if msgId == C.RANGE_REPORT:
             print "Sending Range Report to {}".format(data[17])
@@ -210,12 +211,12 @@ def loop():
                     noteActivity()
                 if msgId == C.RANGE:
                     print "Got Range report"
-                    tag.timeRangeReceived = DW1000.getReceiveTimestamp()
+                    tag.timeRangeReceived[sequence] = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.POLL
                     if protocolFailed == False:
-                        tag.timePollSent = DW1000.getTimeStamp(data, 1)
-                        tag.timePollAckReceived = DW1000.getTimeStamp(data, 6)
-                        tag.timeRangeSent = DW1000.getTimeStamp(data, 11)
+                        tag.timePollSent[sequence] = DW1000.getTimeStamp(data, 1)
+                        tag.timePollAckReceived[sequence] = DW1000.getTimeStamp(data, 6)
+                        tag.timeRangeSent[sequence] = DW1000.getTimeStamp(data, 11)
                         print tag
                         transmitRangeAcknowledge(sender)
                         distance = (tag_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
