@@ -98,7 +98,8 @@ def transmitPoll(address=0xFF):
     data[0] = C.POLL
     data[16] = myAddress
     data[17] = address
-    data[18] = anchor_list[address].sequenceNumber
+    if address != 0XFF:
+        data[18] = anchor_list[address].sequenceNumber
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
     lastPoll = millis()
