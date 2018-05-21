@@ -26,8 +26,12 @@ timeComputedRangeTS = 0
 REPLY_DELAY_TIME_US = 7000 
 
 tag_list = {}
+# Contains the DW1000Device objects of type TAG 
 expectedMsgId = {}
+# Contains the expected message ID of the Devices as key value pairs. key = device address, value = expectedMsgId
+# TODO: Implement this as an attribute of the DW1000Device object's attribute
 myAddress = 1
+# Current Device's Address
 
 
 def millis():
@@ -178,7 +182,7 @@ def loop():
         msgId       = data[0]
         sender      = data[16]
         receiver    = data[17]
-        if sender not in tag_list and sender != 0xFF:
+        if sender not in tag_list:
             print "Adding {} to tag list".format(sender)
             print data
             # Add tag to tag_list
@@ -187,6 +191,9 @@ def loop():
             transmitPollAck(sender)
             print tag_list
         else:
+            if receiver == 0xFF:
+                print "Ignoring Broadcast Message by {}".format(sender)
+                return
             if receiver != myAddress:
                 print "Message was for {} :(".format(receiver)
                 print "expecting {}".format(expectedMsgId)
