@@ -76,10 +76,14 @@ def resetInactive():
     """
     global expectedMsgId
     print("Reset inactive")	
-    for i in expectedMsgId.keys():
-        transmitPoll(i)
-        expectedMsgId[i] = C.POLL_ACK
-    noteActivity()
+    if expectedMsgId.keys() == [] :
+    	transmitPoll()
+    	noteActivity()
+    else:
+	    for i in expectedMsgId.keys():
+	        transmitPoll(i)
+	        expectedMsgId[i] = C.POLL_ACK
+	    noteActivity()
 
 
 def transmitPoll(address=0xFF):
