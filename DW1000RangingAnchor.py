@@ -85,7 +85,7 @@ def transmitPollAck(address):
     This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
     """        
     global data, myAddress
-    ##print "transmitPollAck"
+    #print "transmitPollAck"
     DW1000.newTransmit()
     data[0] = C.POLL_ACK
     data[16] = myAddress
@@ -100,7 +100,7 @@ def transmitRangeAcknowledge(address):
     This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
     """
     global data, myAddress
-    ##print "transmitRangeAcknowledge"
+    ###print "transmitRangeAcknowledge"
     DW1000.newTransmit()
     data[0] = C.RANGE_REPORT
     data[16] = myAddress
@@ -114,7 +114,7 @@ def transmitRangeFailed(address):
     This functions sends the range failed message which tells the tag that the ranging function has failed and to start another ranging transmission.
     """
     global data, myAddress
-    ##print "transmitRangeFailed"
+    ###print "transmitRangeFailed"
     DW1000.newTransmit()
     data[0] = C.RANGE_FAILED
     data[16] = myAddress
@@ -128,7 +128,7 @@ def receiver():
     This function configures the chip to prepare for a message reception.
     """
     global data
-    print "receiver"
+    #print "receiver"
     DW1000.newReceive()
     DW1000.receivePermanently()
     DW1000.startReceive()
@@ -143,8 +143,8 @@ def computeRangeAsymmetric():
     reply1 = DW1000.wrapTimestamp(timePollAckSentTS - timePollReceivedTS)
     round2 = DW1000.wrapTimestamp(timeRangeReceivedTS - timePollAckSentTS)
     reply2 = DW1000.wrapTimestamp(timeRangeSentTS - timePollAckReceivedTS)
-    #print "ROUND 1: ", round1,reply1
-    #print "ROUND 2: ", round2,reply2
+    ##print "ROUND 1: ", round1,reply1
+    ##print "ROUND 2: ", round2,reply2
     timeComputedRangeTS = (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
     # timeComputedRangeTS = (round2 + round1 - reply1 - reply2)/2
 
@@ -169,11 +169,11 @@ def loop():
         tag = tag_list[data[17]]
         sequence = data[18]
         if msgId == C.POLL_ACK:
-            print "Sending poll ack to {}".format(data[17])
+            #print "Sending poll ack to {}".format(data[17])
             tag.timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
             noteActivity()
         if msgId == C.RANGE_REPORT:
-            print "Sending Range Report to {}".format(data[17])
+            #print "Sending Range Report to {}".format(data[17])
             noteActivity()
 
     if receivedAck:
@@ -183,54 +183,55 @@ def loop():
         sender      = data[16]
         receiver    = data[17]
         if sender not in tag_list:
-            print "Adding {} to tag list".format(sender)
-            print data
+            #print "Adding {} to tag list".format(sender)
+            #print data
             # Add tag to tag_list
             addTag(sender)
             # Send a dummy POLL_ACK so that the tag can add this anchor to its list and send data.
             transmitPollAck(sender)
-            print tag_list
+            #print tag_list
         else:
             if receiver == 0xFF:
-                print "Ignoring Broadcast Message by {}".format(sender)
+                #print "Ignoring Broadcast Message by {}".format(sender)
+                transmitPollAck(sender)
                 return
             if receiver != myAddress:
-                print "Message was for {} :(".format(receiver)
-                print "expecting {}".format(expectedMsgId)
+                #print "Message was for {} :(".format(receiver)
+                #print "expecting {}".format(expectedMsgId)
                 # Message wasn't meant for us
                 return
             elif receiver == 0xFF:
                 resetInactive()
             else:
                 if msgId != expectedMsgId[sender]:
-                    print "MessageID not expected :( got {} expected {}".format(msgId, expectedMsgId[sender])
-                    print "protocolFailed"
+                    #print "MessageID not expected :( got {} expected {}".format(msgId, expectedMsgId[sender])
+                    #print "protocolFailed"
                     protocolFailed = True
                 tag = tag_list[sender]
                 sequence = data[18]
                 tag.sequenceNumber = sequence
                 if msgId == C.POLL:
-                    print "Got poll"
+                    #print "Got poll"
                     protocolFailed = False
                     tag.timePollReceived[sequence] = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.RANGE
                     transmitPollAck(sender)
                     noteActivity()
                 if msgId == C.RANGE:
-                    print "Got Range report"
+                    #print "Got Range report"
                     tag.timeRangeReceived[sequence] = DW1000.getReceiveTimestamp()
                     expectedMsgId[sender] = C.POLL
                     if protocolFailed == False:
                         tag.timePollSent[sequence] = DW1000.getTimeStamp(data, 1)
                         tag.timePollAckReceived[sequence] = DW1000.getTimeStamp(data, 6)
                         tag.timeRangeSent[sequence] = DW1000.getTimeStamp(data, 11)
-                        print tag
+                        # print tag
                         transmitRangeAcknowledge(sender)
                         distance = (tag_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
                         print("Distance: %.2f m" %(distance))
 
                     else:
-                        print "range failed"
+                        #print "range failed"
                         transmitRangeFailed(sender)
 
         noteActivity()
@@ -243,7 +244,7 @@ try:
     ##print("DW1000 initialized")
     ##print("############### ANCHOR ##############")
 
-    DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
+    DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_SHORTDATA_FAST_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
     DW1000.registerCallback("handleReceived", handleReceived)
     DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
