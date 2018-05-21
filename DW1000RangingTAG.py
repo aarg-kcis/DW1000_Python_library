@@ -120,11 +120,6 @@ def transmitRange(address):
     data[16] = myAddress
     data[17] = address
     data[18] = anchor_list[address].sequenceNumber
-    # anchor_list[address].timeRangeSent[data[18]] = DW1000.setDelay(7000, C.MICROSECONDS)
-    # DW1000.setTimeStamp(data, anchor_list[address].timePollSent[data[18]], 1)
-    # DW1000.setTimeStamp(data, anchor_list[address].timePollAckReceived[data[18]], 6)
-    # DW1000.setTimeStamp(data, anchor_list[address].timeRangeSent[data[18]], 11)
-    # print anchor_list[address]
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -134,6 +129,7 @@ def addAnchor(address):
 
     anchor_list[address] = DW1000Device(address, DW1000Device.ANCHOR)
     expectedMsgId[address] = C.POLL_ACK
+    #### anchor_list[address].expectedmesg = C.POLL
 
 
 def loop():
@@ -156,10 +152,12 @@ def loop():
             if not is_brodcast:
                 print "Sending poll to {} with seq {}".format(data[17], anchor.sequenceNumber)
                 anchor.timePollSent[sequence] = DW1000.getTransmitTimestamp()
+                ##### anchor.expectedmesg = C.RANGE
                 print "time poll sent-->",anchor_list[data[17]].timePollSent 
             noteActivity()
         elif msgID == C.RANGE:
             print "Range message sent to {} with seq {}".format(data[17], anchor.sequenceNumber)
+            ##### anchor.expectedmesg = C.POLL
             anchor.timeRangeSent[sequence]   = DW1000.getTransmitTimestamp()
             print "time range sent-->",anchor_list[data[17]].timeRangeSent[sequence] 
             noteActivity()
@@ -175,7 +173,9 @@ def loop():
         if sender not in anchor_list:
             print "Adding {} to anchor list".format(sender)
             # Add anchor to anchor_list
+            ###### if there are no anchors then... transmit poll
             addAnchor(sender)
+            ###### only transmit poll if this is the first anchor
             transmitPoll(sender)
             # print anchor_list
             noteActivity()
@@ -204,6 +204,8 @@ def loop():
                     anchor.timePollAckReceived[sequence] = DW1000.getReceiveTimestamp()
                     print "time poll ack received-->",anchor_list[data[16]].timePollAckReceived 
                     expectedMsgId[sender] = C.RANGE_REPORT
+                    ##### if there is any anchor which expects poll then send poll to that anchor
+                    ##### else transmitrange to this anchor
                     transmitRange(sender)
                     noteActivity()
 
@@ -213,16 +215,13 @@ def loop():
                         anchor.timePollReceived[sequence] = DW1000.getTimeStamp(data, 1)
                         anchor.timePollAckSent[sequence] = DW1000.getTimeStamp(data, 6)
                         anchor.timeRangeReceived[sequence] = DW1000.getTimeStamp(data, 11)
-                    # errorInRange = anchor.timeRangeSentActual[sequence] - anchor.timeRangeSent[sequence]
-                    # print "errorInRange", errorInRange
-                    # k = k + (ALPHA**-1)*errorInRange
-                    # print "k : {}, Alpha: {}".format(k, ALPHA)
-                    # ALPHA = =
                         distance = (anchor_list[sender].getRange() % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
                         print("Distance: %.2f m" %(distance))
                         anchor.incrementSequenceNumber()
                         expectedMsgId[sender] = C.POLL_ACK
                         anchor.deletePreviousSequenceData()
+                        ##### if there is any anchor that expects range msg then send range to that anchor
+                        ##### else transmit poll to current anchor
                         transmitPoll(sender)
                         noteActivity() 
                     

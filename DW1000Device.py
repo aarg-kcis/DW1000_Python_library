@@ -8,7 +8,6 @@ class DW1000Device:
         self.is_inactive            = False
         self.timePollSent           = {}
         self.timeRangeSent          = {}
-        self.timeRangeSentActual    = {}
         self.timePollAckReceived    = {}
         self.timePollAckSent        = {}
         self.timePollReceived       = {}
@@ -16,7 +15,7 @@ class DW1000Device:
         self.sequenceNumber         = 0
         self.data                   = []
         self.timestamps             = [ self.timePollSent, self.timeRangeSent, self.timePollAckReceived, \
-                                        self.timePollAckSent, self.timePollReceived, self.timeRangeReceived, self.timeRangeSentActual]
+                                        self.timePollAckSent, self.timePollReceived, self.timeRangeReceived]
 
     def deletePreviousSequenceData(self):
         for i in self.timestamps:
@@ -54,11 +53,10 @@ class DW1000Device:
         is_inactive: {}
         timePollSent: {}    
         timeRangeSent: {} 
-        timeRangeSentActual: {}
         timePollAckReceived: {}
         timePollAckSent: {} 
         timePollReceived: {}
         timeRangeReceived: {} 
         sequenceNumber: {} """.format(  self.address, self.type, self.is_inactive, self.timePollSent, \
-                                        self.timeRangeSent, self.timeRangeSentActual, self.timePollAckReceived, self.timePollAckSent, \
+                                        self.timeRangeSent, self.timePollAckReceived, self.timePollAckSent, \
                                         self.timePollReceived, self.timeRangeReceived, self.sequenceNumber)
