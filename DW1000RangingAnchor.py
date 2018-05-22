@@ -164,20 +164,24 @@ def loop():
             noteActivity()
 
     if receivedAck:
+        print "received something"
         receivedAck = False
-        data = DW1000.getData(LEN_DATA)
-        msgId           = data[0]
-        sender          = data[16]
-        receiver        = data[17]
-        typeOfSender    = data[19]
+        datatmp = DW1000.getData(LEN_DATA)
+        msgId           = datatmp[0]
+        sender          = datatmp[16]
+        receiver        = datatmp[17]
+        typeOfSender    = datatmp[19]
 
         if nodeType == typeOfSender:
+            print "message from Anchor..ignore "
+            # print nodeType, typeOfSender
             # Only accept packets from tags
             # ignore packets from anchors...
             return
         if sender not in tag_list:
             print "Adding {} to tag list".format(sender)
-            print data
+            data = datatmp[:]
+            # print data
             # Add tag to tag_list
             addTag(sender)
             # Send a dummy POLL_ACK so that the tag can add this anchor to its list and send data.
@@ -197,6 +201,8 @@ def loop():
             #     print "receiving broadcast message..!!"
             #     resetInactive()
             else:
+                data = datatmp[:]
+                # print data
                 if msgId != expectedMsgId[sender]:
                     print "MessageID not expected :( got {} expected {}".format(msgId, expectedMsgId[sender])
                     print "protocolFailed"
