@@ -171,7 +171,7 @@ def loop():
         receiver        = data[17]
         typeOfSender    = data[19]
 
-        if nodeType != typeOfSender:
+        if nodeType == typeOfSender:
             # Only accept packets from tags
             # ignore packets from anchors...
             return
