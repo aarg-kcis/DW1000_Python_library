@@ -30,7 +30,8 @@ class DW1000Device:
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent[self.sequenceNumber] - \
                                         self.timePollReceived[self.sequenceNumber])
         self.deletePreviousSequenceData()
-        return (round1 - reply1) / 2
+        range = (round1 - reply1) / 2
+        return (range % C.TIME_OVERFLOW) * C.DISTANCE_OF_RADIO
 
     def is_inactive(self):
         return is_inactive
