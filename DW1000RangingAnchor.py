@@ -1,5 +1,7 @@
 """
-This python script is used to configure the DW1000 chip as an anchor for ranging functionalities. It must be used in conjunction with the RangingTAG script.
+This python script is used to configure the DW1000 chip as an anchor 
+for ranging functionalities. 
+It must be used in conjunction with the RangingTAG script.
 It requires the following modules: DW1000, DW1000Constants and monotonic.
 """
 
@@ -9,37 +11,86 @@ import monotonic
 import DW1000Constants as C
 from DW1000Device import DW1000Device
 
-
+"""
+Stores the timestamp when the device was last active
+Note this timestamp is the host device's timestamp and
+differs from that received from DW1000
+""" 
 lastActivity = 0
-protocolFailed = False
-sentAck = False
-receivedAck = False
-LEN_DATA = 20
+
+"""     
+Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
+1. Message type
+2. Sender ID
+3. Receiver ID
+4. Type of sender device
+5. Sequence number 
+"""
+LEN_DATA = 15
 data = [0] * LEN_DATA
-REPLY_DELAY_TIME_US = 7000 
 
-tag_list = {}
-# Contains the DW1000Device objects of type TAG 
-expectedMsgId = {}
-# Contains the expected message ID of the Devices as key value pairs. key = device address, value = expectedMsgId
-# TODO: Implement this as an attribute of the DW1000Device object's attribute
+"""
+Contains the DW1000Device objects of type TAG. 
+Stored as key val pairs key = device address, val = <DW1000Device object> 
+"""
+tagList = {}
+
+
+"""
+Current Device's Address
+Has to be unique across all devices
+TODO: Implement address as the host device's IP address
+"""
 myAddress = 1
-nodeType = 1 # ANCHOR
-# Current Device's Address
 
+"""
+The type of node this device is:
+TAG     = 0
+ANCHOR  = 1
+"""
+nodeType = 1
+
+"""
+Indices of data hold the following values. Feel free to change them.
+1. message type
+2. sender address
+3. receiver address
+4. device type of the sender
+5. sequence number of the data
+"""
+INDEX_MSGTYPE       = 0
+INDEX_SENDER        = LEN_DATA - 4
+INDEX_RECEIVER      = LEN_DATA - 3
+INDEX_DEVICETYPE    = LEN_DATA - 2
+INDEX_SEQUENCE      = LEN_DATA - 1
+
+
+def getDetailsFromPacket(packet):
+    return packet[INDEX_MSGTYPE], packet[INDEX_SENDER], packet[INDEX_RECEIVER]\
+            , packet[INDEX_DEVICETYPE], packet[INDEX_SEQUENCE]
 
 def millis():
     """
-    This function returns the value (in milliseconds) of a clock which never goes backwards. It detects the inactivity of the chip and
+    This function returns the value (in milliseconds) of a clock 
+    which never goes backwards. 
+    It detects the inactivity of the chip and
     is used to avoid having the chip stuck in an undesirable state.
     """
     return int(round(monotonic.monotonic() * C.MILLISECONDS))
 
+def noteActivity():
+    """
+    This function records the time of the last activity so we 
+    can know if the device is inactive or not.
+    """
+    global lastActivity
+    lastActivity = millis()
+
 
 def handleSent():
     """
-    This is a callback called from the module's interrupt handler when a transmission was successful.
-    It sets the sentAck variable as True so the loop can continue.
+    This is a callback called from the module's interrupt handler when 
+    a transmission was successful.
     """
     global sentAck
     sentAck = True
@@ -47,19 +98,21 @@ def handleSent():
 
 def handleReceived():
     """
-    This is a callback called from the module's interrupt handler when a reception was successful.
-    It sets the received receivedAck as True so the loop can continue.
+    This is a callback called from the module's interrupt handler when a 
+    reception was successful.
     """
-    global receivedAck
-    receivedAck = True
+    print "Received Something"
+    data = DW1000.getData(LEN_DATA)
+    isDataGood, details = filterData(data)
+    if not isDataGood:
+        return
 
+    DW1000.clearReceiveStatus()
 
-def noteActivity():
-    """
-    This function records the time of the last activity so we can know if the device is inactive or not.
-    """
-    global lastActivity
-    lastActivity = millis()
+def filterData(data):
+    global tagList
+    msgType, sender, receiver, deviceType, sequence = getDetailsFromPacket(data)
+    
 
 
 def resetInactive():
@@ -76,7 +129,8 @@ def resetInactive():
 
 def transmitPollAck(address):
     """
-    This function sends the polling acknowledge message which is used to confirm the reception of the polling message. 
+    This function sends the polling acknowledge message which is used to 
+    confirm the reception of the polling message. 
     """        
     global data, myAddress, nodeType
     print "transmitPollAck"
@@ -92,7 +146,8 @@ def transmitPollAck(address):
 
 def transmitRangeAcknowledge(address):
     """
-    This functions sends the range acknowledge message which tells the tag that the ranging function was successful and another ranging transmission can begin.
+    This functions sends the range acknowledge message which tells the 
+    tag that the ranging function was successful and another ranging transmission can begin.
     """
     global data, myAddress, nodeType
     ##print "transmitRangeAcknowledge"
@@ -111,7 +166,8 @@ def transmitRangeAcknowledge(address):
 
 def transmitRangeFailed(address):
     """
-    This functions sends the range failed message which tells the tag that the ranging function has failed and to start another ranging transmission.
+    This functions sends the range failed message which tells the tag that 
+    the ranging function has failed and to start another ranging transmission.
     """
     global data, myAddress
     ##print "transmitRangeFailed"
@@ -124,14 +180,13 @@ def transmitRangeFailed(address):
     DW1000.startTransmit()
 
 
-def receiver():
+def startReceiver():
     """
     This function configures the chip to prepare for a message reception.
     """
     global data
-    print "receiver"
+    print "Initializing Receiver"
     DW1000.newReceive()
-    DW1000.receivePermanently()
     DW1000.startReceive()
 
 
@@ -243,18 +298,12 @@ try:
     PIN_SS = 16
     DW1000.begin(PIN_IRQ)
     DW1000.setup(PIN_SS)
-    ##print("DW1000 initialized")
-    ##print("############### ANCHOR ##############")
-
     DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
     DW1000.registerCallback("handleSent", handleSent)
     DW1000.registerCallback("handleReceived", handleReceived)
     DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
-
     receiver()
     noteActivity()
-    while 1:
-        loop()
-
 except KeyboardInterrupt:
+    print "Shutting Down."
     DW1000.close()

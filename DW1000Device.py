@@ -7,15 +7,14 @@ class DW1000Device:
         self.type                   = type_of_tag
         self.is_inactive            = False
         self.timePollSent           = {}
-        self.timeRangeSent          = {}
         self.timePollAckReceived    = {}
         self.timePollAckSent        = {}
         self.timePollReceived       = {}
-        self.timeRangeReceived      = {}
         self.sequenceNumber         = 0
         self.data                   = []
-        self.timestamps             = [ self.timePollSent, self.timeRangeSent, self.timePollAckReceived, \
-                                        self.timePollAckSent, self.timePollReceived, self.timeRangeReceived]
+        self.expectegMessage        = C.POLL if (self.type == ANCHOR) else C.POLL_ACK
+        self.timestamps             = [ self.timePollSent, self.timePollAckReceived, \
+                                        self.timePollAckSent, self.timePollReceived]
 
     def deletePreviousSequenceData(self):
         for i in self.timestamps:
@@ -24,13 +23,14 @@ class DW1000Device:
                     del i[j]
 
     def getRange(self):
-        assert self.type == DW1000Device.ANCHOR, "Anchors are not equipped to find distance from anchors"
-        round1 = DW1000.wrapTimestamp(self.timePollAckReceived[self.sequenceNumber] - self.timePollSent[self.sequenceNumber])
-        reply1 = DW1000.wrapTimestamp(self.timePollAckSent[self.sequenceNumber] - self.timePollReceived[self.sequenceNumber])
-        round2 = DW1000.wrapTimestamp(self.timeRangeReceived[self.sequenceNumber] - self.timePollAckSent[self.sequenceNumber])
-        reply2 = DW1000.wrapTimestamp(self.timeRangeSent[self.sequenceNumber] - self.timePollAckReceived[self.sequenceNumber])
+        assert self.type == DW1000Device.ANCHOR, \
+                            "Tags are not equipped to find distance from anchors"
+        round1 = DW1000.wrapTimestamp(self.timePollAckReceived[self.sequenceNumber] - \
+                                        self.timePollSent[self.sequenceNumber])
+        reply1 = DW1000.wrapTimestamp(self.timePollAckSent[self.sequenceNumber] - \
+                                        self.timePollReceived[self.sequenceNumber])
         self.deletePreviousSequenceData()
-        return (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
+        return (round1 - reply1) / 2
 
     def is_inactive(self):
         return is_inactive
@@ -46,15 +46,15 @@ class DW1000Device:
         self.sequenceNumber = self.sequenceNumber%256
 
     def __str__(self):
-        return """address: {}\n   
+        return \
+        """address: {}\n   
         type: {}
         is_inactive: {}
-        timePollSent: {}    
-        timeRangeSent: {} 
-        timePollAckReceived: {}
+        timePollSent: {}
+        timePollReceived: {} 
         timePollAckSent: {} 
-        timePollReceived: {}
-        timeRangeReceived: {} 
-        sequenceNumber: {} """.format(  self.address, self.type, self.is_inactive, self.timePollSent, \
-                                        self.timeRangeSent, self.timePollAckReceived, self.timePollAckSent, \
-                                        self.timePollReceived, self.timeRangeReceived, self.sequenceNumber)
+        timePollAckReceived: {}
+        sequenceNumber: {} """\
+        .format(self.address, self.type, self.is_inactive, self.timePollSent, \
+                self.timePollReceived, self.timePollAckSent, self.timePollAckReceived, \
+                self.sequenceNumber)
