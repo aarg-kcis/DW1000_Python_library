@@ -29,8 +29,6 @@ class DW1000Device:
         reply1 = DW1000.wrapTimestamp(self.timePollAckSent[self.sequenceNumber] - self.timePollReceived[self.sequenceNumber])
         round2 = DW1000.wrapTimestamp(self.timeRangeReceived[self.sequenceNumber] - self.timePollAckSent[self.sequenceNumber])
         reply2 = DW1000.wrapTimestamp(self.timeRangeSent[self.sequenceNumber] - self.timePollAckReceived[self.sequenceNumber])
-        # print "round1 {} reply1 {}".format(round1, reply1)
-        # print "round2 {} reply2 {}".format(round2, reply2)
         self.deletePreviousSequenceData()
         return (round1 * round2 - reply1 * reply2) / (round1 + round2 + reply1 + reply2)
 
