@@ -5,7 +5,6 @@ It must be used in conjunction with the RangingTAG script.
 It requires the following modules: DW1000, DW1000Constants and monotonic.
 """
 
-
 import DW1000
 import socket
 import monotonic
@@ -21,7 +20,7 @@ differs from that received from DW1000
 lastActivity = 0
 
 """
-Length of data = max(n_tags + 5, )
+Length of data = max(n_tags + 5, n_timestamps_to_be_shared + 5)
 Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 1. Message type
 2. Sender ID
@@ -108,9 +107,14 @@ def handleSent():
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
-    global sentAck
-    sentAck = True
+    global data, tagList
 
+    msgType     = data[INDEX_MSGTYPE]
+    sequence    = data[INDEX_SEQUENCE]
+    if msgType == C.POLL_ACK:
+        for address in range(1:len(data)):
+            tagList[address].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
+            noteActivity()
 
 def handleReceived():
     """
@@ -154,14 +158,14 @@ def filterData(data):
         return False, None
    
     # check if data packet's sequence number is correct
-    if sequence < tagList[sender].sequenceNumber:
+    if sequence == currentSequence:
         return
 
     # check if data packet's sender is in tagList
     # this check also looks after the fact that this device doesn't 
     # accept messages from the same kind of device
     if deviceType == NODE_TYPE:
-        return None, None
+        return False, None
     
     # if all checks passes then return true and (msgType, sender, ...)
     return True, (msgType, sender, receiver, deviceType, sequence)
@@ -184,6 +188,7 @@ def transmitPollAck(addresses):
     This function sends the polling acknowledge message which is used to 
     confirm the reception of the polling message. 
     """
+    global data
     DW1000.newTransmit()
     data[INDEX_DEVICETYPE]      = NODE_TYPE
     data[INDEX_RECEIVER]        = receiver
@@ -194,42 +199,6 @@ def transmitPollAck(addresses):
     data[1: len(addresses)+1]   = addresses
     # uncomment this is getting wierd results !! Dunno what it does..!
     # DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
-    DW1000.setData(data, LEN_DATA)
-    DW1000.startTransmit()
-
-
-def transmitRangeAcknowledge(address):
-    """
-    This functions sends the range acknowledge message which tells the 
-    tag that the ranging function was successful and another ranging transmission can begin.
-    """
-    global data, myAddress, nodeType
-    ##print "transmitRangeAcknowledge"
-    DW1000.newTransmit()
-    data[0] = C.RANGE_REPORT
-    data[16] = myAddress
-    data[17] = address
-    data[19] = nodeType
-    sequence = tag_list[address].sequenceNumber
-    DW1000.setTimeStamp(data, tag_list[address].timePollReceived[sequence], 1)
-    DW1000.setTimeStamp(data, tag_list[address].timePollAckSent[sequence], 6)
-    DW1000.setTimeStamp(data, tag_list[address].timeRangeReceived[sequence], 11)
-    DW1000.setData(data, LEN_DATA)
-    DW1000.startTransmit()
-
-
-def transmitRangeFailed(address):
-    """
-    This functions sends the range failed message which tells the tag that 
-    the ranging function has failed and to start another ranging transmission.
-    """
-    global data, myAddress
-    ##print "transmitRangeFailed"
-    DW1000.newTransmit()
-    data[0] = C.RANGE_FAILED
-    data[16] = myAddress
-    data[17] = address
-
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -245,6 +214,24 @@ def startReceiver():
 
 
 def listenForActivation():
+    """
+    This function is run in a seperate thread and listens for messages from the central server.
+    The server controls the packet traffic by commanding the nodes to send messages sequentially.
+    This avoids collision and unnecessary packet loss. 
+    The packets sent by the server are of the following form:
+
+    <sequence_number> <command/messgae_type> <device_address> <device_address(opt.)>
+
+    000 SENDPOLL 01
+    000 SENDPACK 02
+    000 RANGE 01 02
+
+    In case of range messages the first device is always the sender(TAG) 
+    and the second, the receiver(ANCHOR)
+
+    Remember sequence numbers cannot exceed 255 b/c they are transmitted in data as a single byte
+    The socket server should automatically roll back these sequence numbers
+    """
     global currentSequence
     while True:
         message = listenerSocket.recv(BYTES_TO_RECEIVE)
@@ -254,11 +241,14 @@ def listenForActivation():
 
         # if message is for starting a poll ack then send poll ack message
         # sequence = getSequenceFromMsg(msg)
+        # if message is not for this anchor then skip and continue loop
         # addresses = [i.address for i in tagList.values() if i.sequenceNumber == sequence]
         # addresses = [i for i in tagList if tagList[i].sequenceNumber == sequence]
         # transmitPollAck(addresses)
 
-
+        # if message is for accepting range from a particular tag
+        # currentSequence = getSequenceFromMsg(msg)
+        # startReceiver() 
 try:
     PIN_IRQ = 19
     PIN_SS = 16
