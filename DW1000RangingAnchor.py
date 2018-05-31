@@ -154,7 +154,8 @@ def filterData(data):
         return False, None
    
     # check if data packet's sequence number is correct
-    if sequence < tagList[sender].sequenceNumber: 
+
+    if sequence < tagList[sender].sequenceNumber:
         return
 
     # check if data packet's sender is in tagList

@@ -8,6 +8,7 @@ import DW1000
 import monotonic
 import DW1000Constants as C
 from DW1000Device import DW1000Device
+
 import socket
 from DW1000Device import DW1000Device
 
@@ -84,20 +85,17 @@ To maintain Polling frequency
 
 lastPoll = 0
 
+def millis():
+    """
+    This function returns the value (in milliseconds) of a clock which never goes backwards. It detects the inactivity of the chip and
+    is used to avoid having the chip stuck in an undesirable state.
+    """
+    return int(round(monotonic.monotonic()*C.MILLISECONDS))
 
 def getDetailsFromPacket(packet):
     return packet[INDEX_MSGTYPE], packet[INDEX_SENDER], packet[INDEX_RECEIVER]\
             , packet[INDEX_DEVICETYPE], packet[INDEX_SEQUENCE]
 
-
-def millis():
-    """
-    This function returns the value (in milliseconds) of a clock 
-    which never goes backwards. 
-    It detects the inactivity of the chip and
-    is used to avoid having the chip stuck in an undesirable state.
-    """
-    return int(round(monotonic.monotonic() * C.MILLISECONDS))
 
 def noteActivity():
     """
@@ -145,8 +143,10 @@ def filterData(data):
 
 
 
+
 def handleSent():
     """
+
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
@@ -154,12 +154,12 @@ def handleSent():
     sentAck = True 
 
 
-
 def handleReceived():
-    """
-    This is a callback called from the module's interrupt handler when a 
-    reception was successful.
-    """
+    
+
+    # This is a callback called from the module's interrupt handler when a 
+    # reception was successful.
+    
     global currentSequence, data, anchorList
     print "Received Something"
     data = DW1000.getData(LEN_DATA)
@@ -187,9 +187,9 @@ def handleReceived():
 
 
 def resetInactive():
-"""
-This function restarts the default polling operation when the device is deemed inactive.
-"""
+
+# This function restarts the default polling operation when the device is deemed inactive.
+
 global anchorList
 print("Reset inactive")
 for i in anchorList.keys():
@@ -236,9 +236,9 @@ def TransmitRange(address) :
 
 
 def startReceiver():
-"""
-This function configures the chip to prepare for a message reception.
-"""
+
+# This function configures the chip to prepare for a message reception.
+
 global data
 print "Initializing Receiver"
 DW1000.newReceive()
@@ -258,31 +258,29 @@ def listenForActivation():
         if socket_flag == "STRT" : 
 
             if socket_receiver_address==MY_ADDRESS :
-                """
-                if messagetype == poll, transmitPoll() to all anchors
-                """
+                
+                # if messagetype == poll, transmitPoll() to all anchors
+                
                 if messagetype == "POLL":
                     TransmitPoll(addresses)
 
-                """
-                if messagetype == range, tranmit range to anchorList[receiver_address]
-                """
+                
+                # if messagetype == range, tranmit range to anchorList[receiver_address]
+                
                 elif messagetype == "RANG":
                     for i in anchorList.keys() :
                         TransmitRange(i)
 
             else :
-                """
-                if message is for anchors to poll_ack then listen.
-                if message is for anchors to send rangereport , then listen
-                """
+                
+                # if message is for anchors to poll_ack then listen.
+                # if message is for anchors to send rangereport , then listen
+                	
                 if messagetype == "PACK" or messagetype == "RREP" :
                     startReceiver()
 
         else : 
             continue
-
-
 
 
 
