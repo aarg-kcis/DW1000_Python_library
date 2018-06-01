@@ -83,6 +83,9 @@ Current sequence for which the data is received
 """
 currentSequence     = 0
 
+sendAck             = False
+receiveAck          = False
+
 """
 To maintain Polling frequency
 """
@@ -227,6 +230,7 @@ def loop():
     global sendAck, receiveAck, data, anchorList, listenerSocket
 
     if sendAck:
+        sendAck = False
         msgType     = data[INDEX_MSGTYPE]
         sequence    = data[INDEX_SEQUENCE]
         if msgType == C.POLL:
@@ -237,6 +241,7 @@ def loop():
             listenerSocket.send("DONE")
         
     if receiveAck:
+        receiveAck = False
         print "Received Something"
         data = DW1000.getData(LEN_DATA)
         isDataGood, details = filterData(data)
