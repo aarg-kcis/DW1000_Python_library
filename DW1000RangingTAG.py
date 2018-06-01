@@ -138,48 +138,22 @@ def filterData(data):
     return True, (msgType, sender, receiver, deviceType, sequence)
 
 
-
-
 def handleSent():
     """
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
-    global data, anchorList, listenerSocket
+    global sendAck
+    sendAck = True
 
-    msgType     = data[INDEX_MSGTYPE]
-    sequence    = data[INDEX_SEQUENCE]
-    if msgType == C.POLL:
-        noteActivity()
-        listenerSocket.send("DONE")
-    if msgType == C.RANGE:
-        noteActivity()
-        listenerSocket.send("DONE")
 
 def handleReceived():
     """
     This is a callback called from the module's interrupt handler when a 
     reception was successful.
     """
-    global currentSequence, data, anchorList
-
-    print "Received Something"
-    data = DW1000.getData(LEN_DATA)
-    isDataGood, details = filterData(data)
-    msgType, sender, receiver, deviceType, sequence = details
-    if not isDataGood:
-        DW1000.clearReceiveStatus()
-        return
-    currentAnchor = anchorList[sender]
-
-    if msgType == C.POLL_ACK:
-        if sequence != currentSequence:
-            return
-        currentAnchor.sequenceNumber = currentSequence
-        currentAnchor.timePollAckReceived[currentSequence] = DW1000.getReceiveTimestamp()
-        currentAnchor.expectedMessage = C.RANGE_REPORT
-    noteActivity()
-    DW1000.clearReceiveStatus()
+    global receiveAck
+    receiveAck = False
 
 
 def transmitPoll(address=0xFF) :
@@ -247,6 +221,39 @@ def populateNodes(nodes):
         anchorList[node["id"]] = DW1000Device(node["id"], 1)
 
 
+def loop():
+    global sendAck, receiveAck, data, anchorList, listenerSocket
+
+    if sendAck:
+        msgType     = data[INDEX_MSGTYPE]
+        sequence    = data[INDEX_SEQUENCE]
+        if msgType == C.POLL:
+            noteActivity()
+            listenerSocket.send("DONE")
+        if msgType == C.RANGE:
+            noteActivity()
+            listenerSocket.send("DONE")
+        
+    if receiveAck:
+        print "Received Something"
+        data = DW1000.getData(LEN_DATA)
+        isDataGood, details = filterData(data)
+        msgType, sender, receiver, deviceType, sequence = details
+        if not isDataGood:
+            DW1000.clearReceiveStatus()
+            return
+        currentAnchor = anchorList[sender]
+
+        if msgType == C.POLL_ACK:
+            if sequence != currentSequence:
+                return
+            currentAnchor.sequenceNumber = currentSequence
+            currentAnchor.timePollAckReceived[currentSequence] = DW1000.getReceiveTimestamp()
+            currentAnchor.expectedMessage = C.RANGE_REPORT
+        noteActivity()
+        DW1000.clearReceiveStatus()
+
+
 if __name__ == "__main__":
     try:
         PIN_IRQ = 19
@@ -263,6 +270,7 @@ if __name__ == "__main__":
         listenerThread = threading.Thread(target=listenForActivation)
         listenerThread.start()
         listenerSocket.connect((HOST, PORT))
+        loop()
         noteActivity()
 
     except KeyboardInterrupt:
