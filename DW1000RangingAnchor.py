@@ -37,7 +37,6 @@ Stored as key val pairs key = device address, val = <DW1000Device object>
 """
 tagList = {}
 
-
 """
 Current Device's Address
 Has to be unique across all devices

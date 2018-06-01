@@ -31,6 +31,8 @@ Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 LEN_DATA = 20
 data = [0] * LEN_DATA
 
+MY_ADDRESS = 10 # gitignore
+
 """
 Contains the DW1000Device objects of type TAG. 
 Stored as key val pairs key = device address, val = <DW1000Device object> 
