@@ -107,15 +107,8 @@ def handleSent():
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
-    global data, tagList, listenerSocket
-
-    msgType     = data[INDEX_MSGTYPE]
-    sequence    = data[INDEX_SEQUENCE]
-    if msgType == C.POLL_ACK:
-        for address in range(1:len(data)):
-            tagList[address].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
-            noteActivity()
-        listenerSocket.send("DONE")
+    global sendAck
+    sendAck = True
 
 
 def handleReceived():
@@ -123,29 +116,8 @@ def handleReceived():
     This is a callback called from the module's interrupt handler when a 
     reception was successful.
     """
-    print "Received Something"
-    data = DW1000.getData(LEN_DATA)
-    isDataGood, details = filterData(data)
-    msgType, sender, receiver, deviceType, sequence = details
-    if not isDataGood:
-        DW1000.clearReceiveStatus()
-        return
-    currentTag = tagList[sender]
-
-    if msgType == C.POLL:
-        if sequence != currentSequence:
-            return
-        currentTag.sequenceNumber = currentSequence
-        currentTag.timePollReceived[currentSequence] = DW1000.getReceiveTimestamp()
-        currentTag.expectedMessage = C.RANGE
-    if msgType == C.RANGE:
-        currentTag.timeRangeReceived[currentSequence] = DW1000.getReceiveTimestamp()
-        expectedMsgId[sender] = C.POLL
-        range = currentTag.getRange()
-        print "Range {1:4.2}m".format(range)
-
-    noteActivity()
-    DW1000.clearReceiveStatus()
+    global receiveAck
+    receiveAck = False
 
 
 def filterData(data):
@@ -247,6 +219,43 @@ def populateNodes(nodes):
         tagList[node["id"]] = DW1000Device(node["id"], 0)
 
 
+def loop():
+    global sendAck, receiveAck, data, anchorList, listenerSocket
+    
+    if sendAck:
+        msgType     = data[INDEX_MSGTYPE]
+        sequence    = data[INDEX_SEQUENCE]
+        if msgType == C.POLL_ACK:
+            for address in range(1:len(data)):
+                tagList[address].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
+                noteActivity()
+            listenerSocket.send("DONE")
+
+    if receiveAck:
+        print "Received Something"
+        data = DW1000.getData(LEN_DATA)
+        isDataGood, details = filterData(data)
+        msgType, sender, receiver, deviceType, sequence = details
+        if not isDataGood:
+            DW1000.clearReceiveStatus()
+            return
+        currentTag = tagList[sender]
+
+        if msgType == C.POLL:
+            if sequence != currentSequence:
+                return
+            currentTag.sequenceNumber = currentSequence
+            currentTag.timePollReceived[currentSequence] = DW1000.getReceiveTimestamp()
+            currentTag.expectedMessage = C.RANGE
+        if msgType == C.RANGE:
+            currentTag.timeRangeReceived[currentSequence] = DW1000.getReceiveTimestamp()
+            expectedMsgId[sender] = C.POLL
+            range = currentTag.getRange()
+            print "Range {1:4.2}m".format(range)
+
+        noteActivity()
+        DW1000.clearReceiveStatus()
+
 if __name__ == "__main__":
     try:
         PIN_IRQ = 19
@@ -263,6 +272,7 @@ if __name__ == "__main__":
         listenerThread = threading.Thread(target=listenForActivation)
         listenerThread.start()
         listenerSocket.connect((HOST, PORT))
+        loop()
         noteActivity()
 
     except KeyboardInterrupt:
