@@ -1,4 +1,6 @@
 import DW1000
+import DW1000Constants as C
+
 class DW1000Device:
     TAG = 0
     ANCHOR = 1
