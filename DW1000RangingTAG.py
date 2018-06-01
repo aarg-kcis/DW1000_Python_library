@@ -249,34 +249,28 @@ def listenForActivation():
     global currentSequence,addresses, listenerSocket
     while True:
         message = listenerSocket.recv(BYTES_TO_RECEIVE)
+        message_details = message.split(" ")
 
-        currentSequence = int(message[0:3])
-        socket_flag = message[3:7]
-        messagetype = message[7:11]
-        socket_receiver_address = int(message[11:12])
+        currentSequence = int(message_details[0])
+        socket_flag = message_details[1]
+        socket_receiver_address1 = int(message_details[2])
+        if socket_flag=="RANGE" :
+            socket_receiver_address2 = int(message_details[3])
 
         if socket_flag == "STRT" : 
-
-            if socket_receiver_address==MY_ADDRESS :
+            if socket_receiver_address1==MY_ADDRESS :
                 
-                # if messagetype == poll, transmitPoll() to all anchors
-                
-                if messagetype == "POLL":
+                if socket_flag == "SENDPOLL":
                     TransmitPoll(addresses)
+                
+                elif socket_flag == "RANGE":
+                    TransmitRange(socket_receiver_address2)
+                    
+                    # for i in anchorList.keys() :
+                    #     TransmitRange(i)
 
-                
-                # if messagetype == range, tranmit range to anchorList[receiver_address]
-                
-                elif messagetype == "RANG":
-                    for i in anchorList.keys() :
-                        TransmitRange(i)
-
-            else :
-                
-                # if message is for anchors to poll_ack then listen.
-                # if message is for anchors to send rangereport , then listen
-                	
-                if messagetype == "PACK" or messagetype == "RREP" :
+            else :	
+                if messagetype == "SENDPACK" or messagetype == "RANGEREP" :
                     startReceiver()
 
         else : 
