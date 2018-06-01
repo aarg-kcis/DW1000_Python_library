@@ -43,14 +43,14 @@ Current Device's Address
 Has to be unique across all devices
 TODO: Implement address as the host device's IP address
 """
-MY_ADDRESS = 1
+MY_ADDRESS = 10
 
 """
 The type of node this device is:
 TAG     = 0
 ANCHOR  = 1
 """
-NODE_TYPE = 1
+NODE_TYPE = 0
 
 """
 Indices of data hold the following values. Feel free to change them.
@@ -65,6 +65,9 @@ INDEX_SENDER        = LEN_DATA - 4
 INDEX_RECEIVER      = LEN_DATA - 3
 INDEX_DEVICETYPE    = LEN_DATA - 2
 INDEX_SEQUENCE      = LEN_DATA - 1
+INDEX_POLL_SENT_TS  = 1
+INDEX_POLL_ACKR_TS  = 6
+INDEX_RNGE_SENT_TS  = 11
 
 """
 Socket object that listens to the main server for this node's activation
@@ -72,7 +75,7 @@ Socket object that listens to the main server for this node's activation
 listenerSocket      = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 HOST                = "10.2.24.65"
 PORT                = 9999
-BYTES_TO_RECEIVE    = 8
+BYTES_TO_RECEIVE    = 15
 
 """
 Current sequence for which the data is received
@@ -84,6 +87,8 @@ To maintain Polling frequency
 """
 
 lastPoll = 0
+REPLY_DELAY_TIME_US = 7000
+
 
 def millis():
     """
@@ -91,6 +96,7 @@ def millis():
     is used to avoid having the chip stuck in an undesirable state.
     """
     return int(round(monotonic.monotonic()*C.MILLISECONDS))
+
 
 def getDetailsFromPacket(packet):
     return packet[INDEX_MSGTYPE], packet[INDEX_SENDER], packet[INDEX_RECEIVER]\
@@ -114,22 +120,13 @@ def filterData(data):
     if receiver != MY_ADDRESS:
         return False, None
 
-    # check if data packet's sender is in anchorList
-    for i in anchorList.keys() :
-        if sender==i : 
-            sender_in_list = 1      
-
-    if sender_in_list==0 :
-        return False,None  
-
     # check if the expectedMessage for that sender is the same in the packet
     if msgType != anchorList[sender].expectedMessage:
         return False, None
    
     # check if data packet's sequence number is correct
-    if sequence < anchorList[sender].sequenceNumber:
-        return
-
+    if sequence != anchorList[sender].sequenceNumber:
+        return False, None
 
     # this check also looks after the fact that this device doesn't 
     # accept messages from the same kind of device
@@ -146,21 +143,27 @@ def filterData(data):
 
 def handleSent():
     """
-
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
-    global sentAck
-    sentAck = True 
+    global data, anchorList, listenerSocket
 
+    msgType     = data[INDEX_MSGTYPE]
+    sequence    = data[INDEX_SEQUENCE]
+    if msgType == C.POLL:
+        noteActivity()
+        listenerSocket.send("DONE")
+    if msgType == C.RANGE:
+        noteActivity()
+        listenerSocket.send("DONE")
 
 def handleReceived():
-    
-
-    # This is a callback called from the module's interrupt handler when a 
-    # reception was successful.
-    
+    """
+    This is a callback called from the module's interrupt handler when a 
+    reception was successful.
+    """
     global currentSequence, data, anchorList
+
     print "Received Something"
     data = DW1000.getData(LEN_DATA)
     isDataGood, details = filterData(data)
@@ -168,121 +171,74 @@ def handleReceived():
     if not isDataGood:
         DW1000.clearReceiveStatus()
         return
-    currentTag = anchorList[sender]
+    currentAnchor = anchorList[sender]
 
     if msgType == C.POLL_ACK:
         if sequence != currentSequence:
             return
-        currentTag.sequenceNumber = currentSequence
-        currentTag.timePollAckReceived[currentSequence] = DW1000.getReceiveTimestamp()
-        currentTag.expectedMessage = C.RANGE_REPORT
-    if msgType == C.RANGE:
-        currentTag.timeRangeRepReceived[currentSequence] = DW1000.getReceiveTimestamp()
-        currentTag.expectedMessage = C.POLL_ACK
-        # range = currentTag.getRange()
-        # print "Range {1:4.2}m".format(range)
-
+        currentAnchor.sequenceNumber = currentSequence
+        currentAnchor.timePollAckReceived[currentSequence] = DW1000.getReceiveTimestamp()
+        currentAnchor.expectedMessage = C.RANGE_REPORT
     noteActivity()
     DW1000.clearReceiveStatus()
 
 
-def resetInactive():
-
-# This function restarts the default polling operation when the device is deemed inactive.
-
-global anchorList
-print("Reset inactive")
-for i in anchorList.keys():
-    anchorList[i].expectedMessage = C.POLL
-noteActivity()
-
-
-
-def TransmitPoll(addresses) :
+def transmitPoll(address=0xFF) :
     global data,lastPoll,currentSequence, anchorList
-    while (millis()-lastPoll < POLL_RANGE_FREQ) : 
-        pass
     DW1000.newTransmit()
-    data[INDEX_MSGTYPE] = C.POLL
-    data[INDEX_SENDER] = MY_ADDRESS
-    data[INDEX_RECEIVER] = 0xAA #TO INDICATE POLL IS FOR ALL ANCHORS
-    data[INDEX_DEVICETYPE] = NODE_TYPE
-    data[INDEX_SEQUENCE] = currentSequence
-
-    data[1:len(addresses)+1] = addresses
-
+    data[INDEX_MSGTYPE]     = C.POLL
+    data[INDEX_SENDER]      = MY_ADDRESS
+    data[INDEX_RECEIVER]    = address 
+    # Poll in this current method is always for all the devices.!!
+    data[INDEX_DEVICETYPE]  = NODE_TYPE
+    data[INDEX_SEQUENCE]    = currentSequence
     DW1000.setData(data,LEN_DATA)
-
     DW1000.startTransmit()
 
 
-
-
-def TransmitRange(address) : 
+def transmitRange(address) : 
     global data, currentSequence, anchorList
     DW1000.newTransmit()
-    data[INDEX_MSGTYPE] = C.RANGE
-    data[INDEX_SENDER] = MY_ADDRESS
-    data[INDEX_RECEIVER] = address
-    data[INDEX_SEQUENCE] = currentSequence
-    data[INDEX_DEVICETYPE] = NODE_TYPE
-
-    DW1000.setTimeStamp(data,anchorList[address].timePollSent[currentSequence],1)
-    DW1000.setTimeStamp(data,anchorList[address].timePollAckReceived[currentSequence],6)
-    DW1000.setTimeStamp(data,anchorList[address].timePollSent[currentSequence],11)
+    data[INDEX_MSGTYPE]     = C.RANGE
+    data[INDEX_SENDER]      = MY_ADDRESS
+    data[INDEX_RECEIVER]    = address
+    data[INDEX_SEQUENCE]    = currentSequence
+    data[INDEX_DEVICETYPE]  = NODE_TYPE
+    currentAnchor = anchorList[address] 
+    currentAnchor.timeRangeSent[currentSequence] = DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
+    DW1000.setTimeStamp(data, currentAnchor.timePollSent[currentSequence], INDEX_POLL_SENT_TS)
+    DW1000.setTimeStamp(data, currentAnchor.timePollAckReceived[currentSequence], INDEX_POLL_ACKR_TS)
+    DW1000.setTimeStamp(data, currentAnchor.timeRangeSent[currentSequence], INDEX_RNGE_SENT_TS)
 
     DW1000.setData(data,LEN_DATA)
     DW1000.startTransmit()
 
 
 def startReceiver():
-
-# This function configures the chip to prepare for a message reception.
-
-global data
-print "Initializing Receiver"
-DW1000.newReceive()
-DW1000.startReceive()
+    """
+    This function configures the chip to prepare for a message reception.
+    """
+    global data
+    print "Initializing Receiver"
+    DW1000.newReceive()
+    DW1000.startReceive()
 
 
 def listenForActivation():
-    global currentSequence,addresses, listenerSocket
+    global currentSequence, listenerSocket
+
     while True:
         message = listenerSocket.recv(BYTES_TO_RECEIVE)
-
-        currentSequence = int(message[0:3])
-        socket_flag = message[3:7]
-        messagetype = message[7:11]
-        socket_receiver_address = int(message[11:12])
-
-        if socket_flag == "STRT" : 
-
-            if socket_receiver_address==MY_ADDRESS :
-                
-                # if messagetype == poll, transmitPoll() to all anchors
-                
-                if messagetype == "POLL":
-                    TransmitPoll(addresses)
-
-                
-                # if messagetype == range, tranmit range to anchorList[receiver_address]
-                
-                elif messagetype == "RANG":
-                    for i in anchorList.keys() :
-                        TransmitRange(i)
-
-            else :
-                
-                # if message is for anchors to poll_ack then listen.
-                # if message is for anchors to send rangereport , then listen
-                	
-                if messagetype == "PACK" or messagetype == "RREP" :
-                    startReceiver()
-
-        else : 
-            continue
-
-
+        currentSequence, flag, node_address = message.split()
+        currentSequence = int(currentSequence)
+        if   flag == "SENDPOLL":
+            transmitPoll() # Poll all devices (Note: address not passed)
+        elif flag == "SENDPACK":
+            startReceiver()
+        elif flag == "RANGE":
+            tag_address, anchor_address = map(int, node_address.split(','))
+            if tag_address == MY_ADDRESS:
+                transmitRange(anchor_address)
 
 try:
     PIN_IRQ = 19
