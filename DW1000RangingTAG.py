@@ -28,7 +28,7 @@ Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 4. Type of sender device
 5. Sequence number 
 """
-LEN_DATA = 15
+LEN_DATA = 20
 data = [0] * LEN_DATA
 
 """
