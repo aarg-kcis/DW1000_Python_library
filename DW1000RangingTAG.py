@@ -1,5 +1,6 @@
 """
-This python script is used to configure the DW1000 chip as a tag for ranging functionalities. It must be used in conjunction with the RangingAnchor script. 
+This python script is used to configure the DW1000 chip as a tag for ranging functionalities. 
+It must be used in conjunction with the RangingAnchor script. 
 It requires the following modules: DW1000, DW1000Constants and monotonic.
 """
 
@@ -8,7 +9,7 @@ import DW1000
 import monotonic
 import DW1000Constants as C
 from DW1000Device import DW1000Device
-
+import threading
 import socket
 from DW1000Device import DW1000Device
 
@@ -31,7 +32,7 @@ Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 LEN_DATA = 20
 data = [0] * LEN_DATA
 
-MY_ADDRESS = 12 # gitignore
+MY_ADDRESS = 67 # gitignore
 
 """
 Contains the DW1000Device objects of type TAG. 
@@ -234,10 +235,13 @@ def loop():
         msgType     = data[INDEX_MSGTYPE]
         sequence    = data[INDEX_SEQUENCE]
         if msgType == C.POLL:
+            for currentAnchor in anchorList:
+                currentAnchor.timePollSent[currentSequence] = DW1000.getTransmitTimestamp()
             noteActivity()
             listenerSocket.send("DONE")
         if msgType == C.RANGE:
             noteActivity()
+            currentAnchor.timeRangeSent[currentSequence] = DW1000.getTransmitTimestamp()
             listenerSocket.send("DONE")
         
     if receiveAck:
@@ -272,13 +276,14 @@ if __name__ == "__main__":
         DW1000.registerCallback("handleReceived", handleReceived)
         DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
 
+        listenerSocket.connect((HOST, PORT))
         configData = open("config.json", "r").read()
         populateNodes(json.loads(configData)["ANCHORS"])
         listenerThread = threading.Thread(target=listenForActivation)
         listenerThread.start()
-        listenerSocket.connect((HOST, PORT))
-        loop()
-        noteActivity()
+        while True :
+            loop()
+            noteActivity()
 
     except KeyboardInterrupt:
         print "Shutting Down."
