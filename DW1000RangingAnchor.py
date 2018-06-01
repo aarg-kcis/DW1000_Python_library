@@ -78,6 +78,9 @@ Current sequence for which the data is received
 """
 currentSequence     = 0
 
+sendAck             = False
+receiveAck          = False
+
 
 def getDetailsFromPacket(packet):
     return packet[INDEX_MSGTYPE], packet[INDEX_SENDER], packet[INDEX_RECEIVER]\
@@ -222,8 +225,9 @@ def populateNodes(nodes):
 
 def loop():
     global sendAck, receiveAck, data, anchorList, listenerSocket
-    
+
     if sendAck:
+        sendAck = False
         msgType     = data[INDEX_MSGTYPE]
         sequence    = data[INDEX_SEQUENCE]
         if msgType == C.POLL_ACK:
@@ -233,6 +237,7 @@ def loop():
             listenerSocket.send("DONE")
 
     if receiveAck:
+        receiveAck = False
         print "Received Something"
         data = DW1000.getData(LEN_DATA)
         isDataGood, details = filterData(data)
