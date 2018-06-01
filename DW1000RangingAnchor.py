@@ -43,7 +43,6 @@ Current Device's Address
 Has to be unique across all devices
 TODO: Implement address as the host device's IP address
 """
-MY_ADDRESS = 1
 
 """
 The type of node this device is:
