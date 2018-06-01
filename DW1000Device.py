@@ -14,7 +14,7 @@ class DW1000Device:
         self.timePollAckReceived    = {}
         self.timeRangeSent          = {}
         self.timeRangeReceived      = {}
-        self.sequenceNumber         = 0
+        self.sequenceNumber         = -1
         self.data                   = []
         self.expectegMessage        = C.POLL if (self.type == DW1000Device.ANCHOR) else C.POLL_ACK
         self.timestamps             = [ self.timePollSent, self.timePollAckReceived, \
