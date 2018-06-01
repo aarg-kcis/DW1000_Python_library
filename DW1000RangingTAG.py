@@ -240,20 +240,32 @@ def listenForActivation():
             if tag_address == MY_ADDRESS:
                 transmitRange(anchor_address)
 
-try:
-    PIN_IRQ = 19
-    PIN_SS = 16
-    DW1000.begin(PIN_IRQ)
-    DW1000.setup(PIN_SS)
-    DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
-    DW1000.registerCallback("handleSent", handleSent)
-    DW1000.registerCallback("handleReceived", handleReceived)
-    DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
-    listenerThread = threading.Thread(target=listenForActivation)
-    listenerThread.start()
-    listenerSocket.connect((HOST, PORT))
-    noteActivity()
 
-except KeyboardInterrupt:
-    print "Shutting Down."
-    DW1000.close()
+def populateNodes(nodes):
+    global anchorList
+
+    for node in nodes:
+        anchorList[node["id"]] = DW1000Device(node["id"], 1)
+
+
+if __name__ == "__main__":
+    try:
+        PIN_IRQ = 19
+        PIN_SS = 16
+        DW1000.begin(PIN_IRQ)
+        DW1000.setup(PIN_SS)
+        DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
+        DW1000.registerCallback("handleSent", handleSent)
+        DW1000.registerCallback("handleReceived", handleReceived)
+        DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
+
+        configData = open("config.json", "r").read()
+        populateNodes(json.loads(configData)["ANCHORS"])
+        listenerThread = threading.Thread(target=listenForActivation)
+        listenerThread.start()
+        listenerSocket.connect((HOST, PORT))
+        noteActivity()
+
+    except KeyboardInterrupt:
+        print "Shutting Down."
+        DW1000.close()

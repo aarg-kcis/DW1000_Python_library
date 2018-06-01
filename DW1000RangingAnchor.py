@@ -241,11 +241,12 @@ def listenForActivation():
             if anchor_address == MY_ADDRESS:
                 startReceiver()
 
-def populateTags(tags):
+
+def populateNodes(nodes):
     global tagList
 
-    for tag in tags:
-        tagList[tag["id"]] = DW1000Device(tag["id"], 0)
+    for node in nodes:
+        tagList[node["id"]] = DW1000Device(node["id"], 0)
 
 
 if __name__ == "__main__":
@@ -260,7 +261,7 @@ if __name__ == "__main__":
         DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
 
         configData = open("config.json", "r").read()
-        populateTags(json.loads(configData)["TAGS"])
+        populateNodes(json.loads(configData)["TAGS"])
         listenerThread = threading.Thread(target=listenForActivation)
         listenerThread.start()
         listenerSocket.connect((HOST, PORT))
