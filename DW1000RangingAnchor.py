@@ -42,6 +42,7 @@ Current Device's Address
 Has to be unique across all devices
 TODO: Implement address as the host device's IP address
 """
+MY_ADDRESS = 64 # gitignore
 
 """
 The type of node this device is:
@@ -111,6 +112,7 @@ def handleSent():
     a transmission was successful.
     """
     global sendAck
+    print "-----TX-----"
     sendAck = True
 
 
@@ -120,7 +122,8 @@ def handleReceived():
     reception was successful.
     """
     global receiveAck
-    receiveAck = False
+    print "-----RX-----"
+    receiveAck = True
 
 
 def filterData(data):
@@ -128,7 +131,7 @@ def filterData(data):
     msgType, sender, receiver, deviceType, sequence = getDetailsFromPacket(data)
 
     # check if data packet was for us
-    if receiver != MY_ADDRESS:
+    if receiver != MY_ADDRESS or receiver != 0xFF:
         return False, None
 
     # check if the expectedMessage for that sender is the same in the packet
@@ -155,16 +158,18 @@ def transmitPollAck(addresses):
     confirm the reception of the polling message. 
     """
     global data
+    data                        = [0]*LEN_DATA
     DW1000.newTransmit()
     data[INDEX_DEVICETYPE]      = NODE_TYPE
-    data[INDEX_RECEIVER]        = receiver
+    data[INDEX_RECEIVER]        = 0
     data[INDEX_MSGTYPE]         = C.POLL_ACK
     data[INDEX_SENDER]          = MY_ADDRESS
     data[INDEX_SEQUENCE]        = currentSequence
     # put the addresses of all the tags that this anchor received the poll from
     data[1: len(addresses)+1]   = addresses
     # uncomment this is getting wierd results !! Dunno what it does..!
-    # DW1000.setDelay(REPLY_DELAY_TIME_US, C.MICROSECONDS)
+    print data
+    DW1000.setDelay(7000, C.MICROSECONDS)
     DW1000.setData(data, LEN_DATA)
     DW1000.startTransmit()
 
@@ -207,7 +212,7 @@ def listenForActivation():
             startReceiver()
         elif flag == "SENDPACK":
             if int(node_address) == MY_ADDRESS:
-                addresses = [i for i in tagList if tagList[i].sequenceNumber == sequence]
+                addresses = [i for i in tagList if tagList[i].sequenceNumber == currentSequence]
                 transmitPollAck(addresses)
         elif flag == "RANGE": 
             tag_address, anchor_address = map(int, node_address.split(','))
@@ -227,11 +232,14 @@ def loop():
 
     if sendAck:
         sendAck = False
+        print 'sendAck', data
         msgType     = data[INDEX_MSGTYPE]
         sequence    = data[INDEX_SEQUENCE]
         if msgType == C.POLL_ACK:
-            for address in range(1:len(data)):
-                tagList[address].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
+            for i in range(1,len(data)-1):
+                if data[i] == 0:
+                    break
+                tagList[data[i]].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
                 noteActivity()
             listenerSocket.send("DONE")
 
@@ -239,24 +247,26 @@ def loop():
         receiveAck = False
         print "Received Something"
         data = DW1000.getData(LEN_DATA)
+        print data
         isDataGood, details = filterData(data)
-        msgType, sender, receiver, deviceType, sequence = details
         if not isDataGood:
             DW1000.clearReceiveStatus()
             return
+        msgType, sender, receiver, deviceType, sequence = details
         currentTag = tagList[sender]
 
         if msgType == C.POLL:
-            if sequence != currentSequence:
+            if sequence != currentSequence + 1: # POLL will start sequence so currentSequence = sequence - 1
                 return
-            currentTag.sequenceNumber = currentSequence
+            currentTag.sequenceNumber = sequence
             currentTag.timePollReceived[currentSequence] = DW1000.getReceiveTimestamp()
             currentTag.expectedMessage = C.RANGE
+            print currentTag
         if msgType == C.RANGE:
             currentTag.timeRangeReceived[currentSequence] = DW1000.getReceiveTimestamp()
             expectedMsgId[sender] = C.POLL
-            range = currentTag.getRange()
-            print "Range {1:4.2}m".format(range)
+            distance = currentTag.getRange()
+            print "Range {1:4.2}m".format(distance)
 
         noteActivity()
         DW1000.clearReceiveStatus()
@@ -272,12 +282,13 @@ if __name__ == "__main__":
         DW1000.registerCallback("handleReceived", handleReceived)
         DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
 
+        listenerSocket.connect((HOST, PORT))
         configData = open("config.json", "r").read()
         populateNodes(json.loads(configData)["TAGS"])
         listenerThread = threading.Thread(target=listenForActivation)
         listenerThread.start()
-        listenerSocket.connect((HOST, PORT))
-        loop()
+        while True:
+            loop()
         noteActivity()
 
     except KeyboardInterrupt:
