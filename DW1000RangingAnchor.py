@@ -4,7 +4,7 @@ for ranging functionalities.
 It must be used in conjunction with the RangingTAG script.
 It requires the following modules: DW1000, DW1000Constants and monotonic.
 """
-
+import json
 import DW1000
 import socket
 import monotonic
@@ -28,7 +28,7 @@ Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 4. Type of sender device
 5. Sequence number 
 """
-LEN_DATA = 15
+LEN_DATA = 20
 data = [0] * LEN_DATA
 
 """
@@ -72,7 +72,7 @@ Socket object that listens to the main server for this node's activation
 listenerSocket      = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 HOST                = "10.2.24.65"
 PORT                = 9999
-BYTES_TO_RECEIVE    = 8
+BYTES_TO_RECEIVE    = 15
 
 """
 Current sequence for which the data is received
@@ -84,6 +84,7 @@ def getDetailsFromPacket(packet):
     return packet[INDEX_MSGTYPE], packet[INDEX_SENDER], packet[INDEX_RECEIVER]\
             , packet[INDEX_DEVICETYPE], packet[INDEX_SEQUENCE]
 
+
 def millis():
     """
     This function returns the value (in milliseconds) of a clock 
@@ -92,6 +93,7 @@ def millis():
     is used to avoid having the chip stuck in an undesirable state.
     """
     return int(round(monotonic.monotonic() * C.MILLISECONDS))
+
 
 def noteActivity():
     """
@@ -107,7 +109,7 @@ def handleSent():
     This is a callback called from the module's interrupt handler when 
     a transmission was successful.
     """
-    global data, tagList
+    global data, tagList, listenerSocket
 
     msgType     = data[INDEX_MSGTYPE]
     sequence    = data[INDEX_SEQUENCE]
@@ -115,6 +117,8 @@ def handleSent():
         for address in range(1:len(data)):
             tagList[address].timePollAckSent[sequence] = DW1000.getTransmitTimestamp()
             noteActivity()
+        listenerSocket.send("DONE")
+
 
 def handleReceived():
     """
@@ -145,6 +149,7 @@ def handleReceived():
     noteActivity()
     DW1000.clearReceiveStatus()
 
+
 def filterData(data):
     global tagList
     msgType, sender, receiver, deviceType, sequence = getDetailsFromPacket(data)
@@ -159,7 +164,7 @@ def filterData(data):
    
     # check if data packet's sequence number is correct
     if sequence != currentSequence:
-        return
+        return False, None
 
     # check if data packet's sender is in tagList
     # this check also looks after the fact that this device doesn't 
@@ -169,18 +174,6 @@ def filterData(data):
     
     # if all checks passes then return true and (msgType, sender, ...)
     return True, (msgType, sender, receiver, deviceType, sequence)
-
-
-def resetInactive():
-    """
-    This function restarts the default polling operation when the device is deemed inactive.
-    """
-    global expectedMsgId
-    print("Reset inactive")
-    for i in expectedMsgId.keys():
-        expectedMsgId[i] = C.POLL
-    receiver()
-    noteActivity()
 
 
 def transmitPollAck(addresses):
@@ -224,45 +217,55 @@ def listenForActivation():
 
     000 SENDPOLL 01
     000 SENDPACK 02
-    000 RANGE 01 02
+    000 RANGE 01,02
 
     In case of range messages the first device is always the sender(TAG) 
     and the second, the receiver(ANCHOR)
 
     Remember sequence numbers cannot exceed 255 b/c they are transmitted in data as a single byte
-    The socket server should automatically roll back these sequence numbers
+    The socket server should automatically roll back these sequence numbers once it overflows >255
     """
     global currentSequence
     while True:
         message = listenerSocket.recv(BYTES_TO_RECEIVE)
-        # if message is for starting a poll by some tag then activate reveiver
-        # currentSequence = getSequenceFromMsg(msg)
-        # startReceiver()
+        currentSequence, flag, node_address = message.split()
+        currentSequence = int(currentSequence)
+        if   flag == "SENDPOLL":
+            startReceiver()
+        elif flag == "SENDPACK":
+            if int(node_address) == MY_ADDRESS:
+                addresses = [i for i in tagList if tagList[i].sequenceNumber == sequence]
+                transmitPollAck(addresses)
+        elif flag == "RANGE": 
+            tag_address, anchor_address = map(int, node_address.split(','))
+            if anchor_address == MY_ADDRESS:
+                startReceiver()
 
-        # if message is for starting a poll ack then send poll ack message
-        # sequence = getSequenceFromMsg(msg)
-        # if message is not for this anchor then skip and continue loop
-        # addresses = [i.address for i in tagList.values() if i.sequenceNumber == sequence]
-        # addresses = [i for i in tagList if tagList[i].sequenceNumber == sequence]
-        # transmitPollAck(addresses)
+def populateTags(tags):
+    global tagList
 
-        # if message is for accepting range from a particular tag
-        # currentSequence = getSequenceFromMsg(msg)
-        # startReceiver() 
-try:
-    PIN_IRQ = 19
-    PIN_SS = 16
-    DW1000.begin(PIN_IRQ)
-    DW1000.setup(PIN_SS)
-    DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
-    DW1000.registerCallback("handleSent", handleSent)
-    DW1000.registerCallback("handleReceived", handleReceived)
-    DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
-    listenerThread = threading.Thread(target=listenForActivation)
-    listenerThread.start()
-    listenerSocket.connect((HOST, PORT))
-    noteActivity()
+    for tag in tags:
+        tagList[tag["id"]] = DW1000Device(tag["id"], 0)
 
-except KeyboardInterrupt:
-    print "Shutting Down."
-    DW1000.close()
+
+if __name__ == "__main__":
+    try:
+        PIN_IRQ = 19
+        PIN_SS = 16
+        DW1000.begin(PIN_IRQ)
+        DW1000.setup(PIN_SS)
+        DW1000.generalConfiguration("82:17:5B:D5:A9:9A:E2:9C", C.MODE_LONGDATA_FAST_ACCURACY)
+        DW1000.registerCallback("handleSent", handleSent)
+        DW1000.registerCallback("handleReceived", handleReceived)
+        DW1000.setAntennaDelay(C.ANTENNA_DELAY_RASPI)
+
+        configData = open("config.json", "r").read()
+        populateTags(json.loads(configData)["TAGS"])
+        listenerThread = threading.Thread(target=listenForActivation)
+        listenerThread.start()
+        listenerSocket.connect((HOST, PORT))
+        noteActivity()
+
+    except KeyboardInterrupt:
+        print "Shutting Down."
+        DW1000.close()
