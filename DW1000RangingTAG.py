@@ -32,6 +32,7 @@ Length of data in bytes 2x5 for 2 timestamps and 5 bytes for things like
 LEN_DATA = 20
 data = [0] * LEN_DATA
 
+
 MY_ADDRESS = 67 # gitignore
 
 """
