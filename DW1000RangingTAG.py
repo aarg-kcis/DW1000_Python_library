@@ -3,7 +3,7 @@ This python script is used to configure the DW1000 chip as a tag for ranging fun
 It requires the following modules: DW1000, DW1000Constants and monotonic.
 """
 
-
+import json
 import DW1000
 import monotonic
 import DW1000Constants as C
